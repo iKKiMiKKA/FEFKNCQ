@@ -1,7 +1,8 @@
 # FEFKNCQ
 
 给 AI agent 用的 skill：把你的 OC 角色做成 [STOMPGAME](https://ikkimikka.net/stompgame/)
-（`?character=custom`）能直接导入的自定义角色图，并自动开始游戏。
+（`?character=custom`）能直接导入的自定义角色图 `custom.png`，同时产出可设置角色名、
+描述与结算评级的 `custom.zip`，并自动开始游戏。
 
 仓库：<https://github.com/ikkimikka/FEFKNCQ>
 
@@ -19,12 +20,18 @@
 
 agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0` / `front_3` / `front_5` /
 `back_0` / `normal_1` / `normal_3` / `normal_5` / `endscreen`）→ 其余 18 格由脚本自动
-复用同组基准帧 → 合成 1024×1024 `custom.png` → 校验 → 打开游戏页面自动上传 → 点击开始。
+复用同组基准帧 → 合成 1024×1024 `custom.png` 与 `custom.zip` → 校验 →
+有浏览器能力就**默认上传 `custom.zip`** 并点击开始。ZIP 根目录的 `settings.json`
+带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
-**如果你没有指定图片放在哪里**，脚本会额外把成品**复制一份到桌面**（`custom.png`，
-同名文件不会被覆盖），可以直接拖进上传框自己上传；agent 会把桌面路径告诉你。
-若你指定了保存位置，agent 会改用 `--no-desktop`，不再额外复制。
+**想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
+11 个爪格会全部生成真正的手；只发来一张手部参考图不算，仍按脚生成。
+
+**如果你没有指定图片放在哪里**，脚本会把 `custom.png` 与 `custom.zip`
+**各复制一份到桌面**（同名文件不会被覆盖，改用带时间戳的名字），agent 会把两个桌面路径
+都告诉你，想自己上传哪一份都行。若你指定了保存位置，agent 会改用 `--no-desktop`，
+不再额外复制。
 
 **跑通能玩后 agent 会主动询问是否补画更多细节**（兴奋表情、疲惫两帧、抬爪中间帧等），
 用户确认前不会自行加图。补细节只需往 `frames/` 多放几张 `<帧名>.png` 重新合成，
@@ -37,7 +44,8 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 |---|---|
 | 头像 + 脚 | 最佳，角色最还原 |
 | 一张全身图 | 自动裁出头/脚作参考 |
-| 头像 + 一张手的图 | 手部图只借用线条/配色/饰物风格，脚的结构按官方示例推导 |
+| 头像 + 一张手的图（未说用手） | 手部图只借用线条/配色/饰物风格，脚的结构按官方示例推导 |
+| 明确说"用手 / 手掌 / 手拍 / 不要脚" | 手模式：11 个爪格全部画真正的手，坐标与交付流程不变 |
 
 ## 这个 skill 保证什么
 
@@ -61,22 +69,26 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
 
-# 3. 合成 + 校验（默认另复制一份到桌面，路径见 custom.report.json 的 desktop_copy）
-python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png --bg auto
+# 3. 合成 + 校验（默认生成 PNG + ZIP，并各复制一份到桌面）
+python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png --bg auto --name "MY OC"
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
+#    桌面路径见 custom.report.json 的 desktop_copy / desktop_zip
 
 # 3b. 已指定保存位置、不想要桌面副本时
 python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
+# 3c. 只要 PNG、不要 ZIP：加 --no-zip
+# 3d. 改角色名/评级/贴纸：复制 assets/settings.template.json 改好后传 --settings my.json
 
-# 4. 自动导入并开始（可选依赖）
+# 4. 自动导入并开始（可选依赖，默认上传 custom.zip）
 #    仅适合本机真实终端：脚本默认等待回车以保持窗口；agent 请用自带浏览器工具
 pip install -r requirements-browser.txt
 playwright install chromium
-python scripts/import_game.py --image custom.png
+python scripts/import_game.py
 ```
 
 也可以不装 Playwright：打开 <https://ikkimikka.net/stompgame/?character=custom>，
-把桌面上那份 `custom.png` 拖进上传框，再点击画布开始。
+把桌面上的 `custom.zip`（或 `custom.png`）拖进上传框，再点击画布开始。
+推荐 ZIP：会额外带上角色名、描述与结算评级。
 
 ## 目录
 
@@ -84,16 +96,16 @@ python scripts/import_game.py --image custom.png
 SKILL.md                        agent 主指令
 references/layout.md            唯一坐标契约（1024×1024 全部切片）
 references/frame-semantics.md   26 格姿态/表情语义 + 防动作突变约束
-references/input-profiles.md    三种素材模式的容错与降级
+references/input-profiles.md    四种素材模式（含手模式）的容错与降级
 references/numbering.md         34 个格位编号、出现时机与频率
 references/prompts.md           首版 8 格提示词 + 复用映射 + 补细节优先级
 references/import.md            自动导入、验收清单、故障排查
 references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
-scripts/build_sheet.py          合成、复用未生成格、默认复制一份到桌面
+scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP、两份都复制到桌面
 scripts/validate.py             校验（含帧间突变检测）
-scripts/import_game.py          Playwright 自动上传参考实现
+scripts/import_game.py          Playwright 自动上传参考实现（默认上传 ZIP）
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）
 assets/settings.template.json   ZIP 全定制模板
 ```
@@ -121,11 +133,15 @@ assets/settings.template.json   ZIP 全定制模板
   默认永不采样——这是首版敢复用 18 格的依据，详见 `references/numbering.md`。
 - 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
   其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
-  或 `--desktop-dir` 覆盖。桌面已有 `custom.png` 时改存带时间戳的文件名，绝不覆盖。
-- **脚必须贴格子底边**：游戏按爪格底边对齐 `paw_y`（碰撞只看 `paw_y` 与 `floor_y=228`，
-  不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，显示放大 2 倍后
-  就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 现在会对爪格自动裁剪透明边
-  并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
+  或 `--desktop-dir` 覆盖。桌面已有同名 `custom.png` / `custom.zip` 时改存带时间戳的文件名，
+  绝不覆盖；两个路径分别记在 report 的 `desktop_copy` / `desktop_zip`。
+- **脚掌（手模式为手掌）必须贴格子底边**：游戏按爪格底边对齐 `paw_y`（碰撞只看 `paw_y`
+  与 `floor_y=228`，不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，
+  显示放大 2 倍后就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 会对爪格
+  自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
+- **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
+  上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
+  `giant.grades=false`、名字取文件名。详见 `references/import.md`。
 - **未去背的白底方块**会被 `validate.py` 的 `plate:*`（包围盒填充率）判 FAIL；
   合成保持 `--bg auto` 自动估色，必要时显式 `--bg white`。
 
@@ -136,6 +152,7 @@ assets/settings.template.json   ZIP 全定制模板
   `references/upstream.md`。
 - **分发请用 GitHub 仓库 / zipball**：不要用 skill-creator 的 `package_skill.py` 直接打包
   当前工作目录，它会把 `.git/`、`__pycache__/` 以及含上游像素的本地标注图
-  `numbered_map.png` 一起打进 zip。含像素产物一律输出到仓库外（`.gitignore` 已覆盖常见文件名）。
+  `numbered_map.png` 一起打进 zip。含像素产物（`custom.png`、`custom.zip`、标注图）一律
+  不提交、输出到仓库外（`.gitignore` 已覆盖常见文件名）。
 - OC 素材需由用户自行确认使用权；生成内容请遵守所用生图服务与上游站点条款。
 - 游戏为"巨人踩踏小人"的卡通玩法，公开分享时请自行标注受众。

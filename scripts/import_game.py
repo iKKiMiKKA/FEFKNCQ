@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Reference implementation: upload custom.png and start the game in a browser.
+"""Reference implementation: upload custom.zip and start the game in a browser.
+
+The ZIP is the default because its settings.json carries the character name,
+description and grades; pass --image custom.png for the plain PNG route.
 
 This is a fallback for agents that lack a native browser tool. Prefer the
 agent's own browser automation (see references/import.md) so the game window
@@ -19,7 +22,8 @@ GAME_URL = "https://ikkimikka.net/stompgame/?character=custom"
 
 def main():
     ap = argparse.ArgumentParser(description="Import a sheet into STOMPGAME")
-    ap.add_argument("--image", required=True, help="path to custom.png")
+    ap.add_argument("--image", default="custom.zip",
+                    help="path to custom.zip (default, carries name/grades) or custom.png")
     ap.add_argument("--url", default=GAME_URL)
     ap.add_argument("--headless", action="store_true", help="run without a visible window")
     ap.add_argument("--no-wait", action="store_true", help="close the browser immediately after starting")

@@ -11,8 +11,10 @@ The official base image supplies all UI chrome (portrait frame/background,
 intro flag, shadow lattice) and reserved blank cells. Only the character
 cells are cleared and replaced, which keeps every coordinate exact.
 
-Unless the user chose an output location (--no-desktop), the finished sheet is
-also copied to the desktop so it can be uploaded manually.
+Both the PNG and an upload-ready ZIP (image + settings.json at the zip root)
+are produced. Unless the user chose an output location (--no-desktop), both are
+copied to the desktop so the user can pick either one. Browser-capable agents
+upload the ZIP by default: its settings.json carries the character name and grades.
 """
 
 import argparse
@@ -22,6 +24,7 @@ import os
 import shutil
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -61,18 +64,30 @@ def desktop_dir():
     return None
 
 
-def copy_to_desktop(out, target):
-    """Copy the finished sheet to the desktop without overwriting anything."""
-    dest = target / "custom.png"
+def copy_to_desktop(src, target, basename, ext):
+    """Copy a deliverable to the desktop without overwriting anything."""
+    dest = target / (basename + ext)
     if dest.exists():
         stamp = time.strftime("%Y%m%d_%H%M%S")
-        dest = target / ("custom_%s.png" % stamp)
+        dest = target / ("%s_%s%s" % (basename, stamp, ext))
         n = 1
         while dest.exists():
-            dest = target / ("custom_%s_%d.png" % (stamp, n))
+            dest = target / ("%s_%s_%d%s" % (basename, stamp, n, ext))
             n += 1
-    shutil.copy2(str(out), str(dest))
+    shutil.copy2(str(src), str(dest))
     return dest
+
+
+def build_zip(png_path, zip_path, settings_path, name):
+    """Write a STOMPGAME upload ZIP: image + settings.json, both at the root."""
+    data = json.loads(Path(settings_path).read_text(encoding="utf-8"))
+    data.setdefault("images", {})["giant"] = png_path.name
+    if name:
+        data.setdefault("giant", {})["name"] = name
+    with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(str(png_path), png_path.name)
+        zf.writestr("settings.json", json.dumps(data, ensure_ascii=False, indent=2))
+    return zip_path
 
 
 def file_sha256(path):
@@ -173,7 +188,16 @@ def main():
                          help="skip the desktop copy when the user chose an output location")
     ap.add_argument("--desktop-dir", default=None,
                     help="override the detected desktop directory")
-    ap.set_defaults(desktop=True)
+    zipgroup = ap.add_mutually_exclusive_group()
+    zipgroup.add_argument("--zip", dest="make_zip", action="store_true",
+                          help="also write an upload-ready ZIP (default)")
+    zipgroup.add_argument("--no-zip", dest="make_zip", action="store_false",
+                          help="skip the ZIP and produce the PNG only")
+    ap.add_argument("--settings", default=None,
+                    help="settings.json template for the ZIP (defaults to assets/settings.template.json)")
+    ap.add_argument("--name", default=None,
+                    help="OC name written to giant.name inside the ZIP")
+    ap.set_defaults(desktop=True, make_zip=True)
     args = ap.parse_args()
 
     mapping = resolve_frames(args.frames, args.manifest)
@@ -243,6 +267,18 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     png.write_png(str(out), SHEET_W, SHEET_H, sheet)
 
+    zip_path = None
+    if args.make_zip:
+        zip_path = out.with_suffix(".zip")
+        settings = (Path(args.settings) if args.settings else
+                    Path(__file__).resolve().parent.parent / "assets" / "settings.template.json")
+        try:
+            build_zip(out, zip_path, settings, args.name)
+            report["zip"] = str(zip_path)
+        except Exception as exc:
+            report["warnings"].append("zip build failed: %s" % exc)
+            zip_path = None
+
     if args.desktop:
         ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
         if ddir is None or not ddir.is_dir():
@@ -250,10 +286,13 @@ def main():
                 "desktop directory not found; skipped desktop copy "
                 "(pass --desktop-dir or set STOMP_DESKTOP_DIR)")
         elif out.resolve().parent == ddir.resolve():
-            report["desktop_copy"] = None  # output is already on the desktop
+            report["desktop_copy"] = None  # deliverables are already on the desktop
+            report["desktop_zip"] = None
         else:
             try:
-                report["desktop_copy"] = str(copy_to_desktop(out, ddir))
+                report["desktop_copy"] = str(copy_to_desktop(out, ddir, "custom", ".png"))
+                if zip_path:
+                    report["desktop_zip"] = str(copy_to_desktop(zip_path, ddir, "custom", ".zip"))
             except Exception as exc:
                 report["warnings"].append("desktop copy failed: %s" % exc)
 
@@ -271,8 +310,12 @@ def main():
     if missing_must:
         print("WARN  must-generate frames not supplied: %s" % ", ".join(missing_must))
     print("report: %s" % report_path)
+    if report.get("zip"):
+        print("zip: %s" % report["zip"])
     if report.get("desktop_copy"):
-        print("desktop copy: %s" % report["desktop_copy"])
+        print("desktop png: %s" % report["desktop_copy"])
+    if report.get("desktop_zip"):
+        print("desktop zip: %s" % report["desktop_zip"])
     for msg in report["warnings"]:
         print("WARN  %s" % msg)
     for msg in report["errors"]:
