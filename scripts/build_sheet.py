@@ -15,6 +15,7 @@ Both the PNG and an upload-ready ZIP (image + settings.json at the zip root)
 are produced. Unless the user chose an output location (--no-desktop), both are
 copied to the desktop so the user can pick either one. Browser-capable agents
 upload the ZIP by default: its settings.json carries the character name and grades.
+The settings.json is checked against the layout contract before packing.
 """
 
 import argparse
@@ -78,16 +79,65 @@ def copy_to_desktop(src, target, basename, ext):
     return dest
 
 
-def build_zip(png_path, zip_path, settings_path, name):
+SETTINGS_KEYS = {
+    "giant", "images", "set", "bug", "paw", "ego", "stain",
+    "sound_urls", "stickers", "demographics", "ego_tiers",
+}
+GRADE_OPS = {"<", ">", "<=", ">=", "=", "!="}
+LAYOUT_FIELDS = {"levels", "width", "stomp_masks"}
+
+
+def check_settings(data):
+    """Warn about settings that would silently break the sheet contract.
+
+    apply_settings() merges the object groups into the game defaults and
+    replaces the array groups entirely; see references/import.md.
+    """
+    warns = []
+    unknown = sorted(set(data) - SETTINGS_KEYS)
+    if unknown:
+        warns.append("settings.json has unknown top-level keys (ignored by the game): "
+                     + ", ".join(unknown))
+    giant = data.get("giant")
+    grades = giant.get("grades") if isinstance(giant, dict) else None
+    if isinstance(grades, list):
+        if len(grades) > 5:
+            warns.append("grades has %d conditions; the default grade sprite only supports "
+                         "5 (6 ranks) unless set.grade_spr is redefined" % len(grades))
+        for i, g in enumerate(grades):
+            if not (isinstance(g, list) and len(g) == 4 and g[1] in GRADE_OPS
+                    and isinstance(g[2], (int, float)) and isinstance(g[3], str)):
+                warns.append("grades[%d] must be [stat tag, operator, number, hint]" % i)
+                break
+    for group in ("giant", "set", "bug", "paw", "ego", "stain"):
+        obj = data.get(group)
+        if not isinstance(obj, dict):
+            continue
+        for key in sorted(k for k in obj if k.endswith("_spr") or k in LAYOUT_FIELDS):
+            warns.append("settings.%s.%s changes the sprite/layout contract; the "
+                         "1024x1024 sheet will misalign" % (group, key))
+    if "sound_urls" in data:
+        warns.append("sound_urls replaces all default sounds; list every tag you want")
+    tiers = data.get("ego_tiers")
+    if isinstance(tiers, list) and len(tiers) != 6:
+        warns.append("ego_tiers has %d entries; the 14 expression cells assume 6" % len(tiers))
+    return warns
+
+
+def build_zip(png_path, zip_path, settings_path, name, keep_default_stickers=False):
     """Write a STOMPGAME upload ZIP: image + settings.json, both at the root."""
     data = json.loads(Path(settings_path).read_text(encoding="utf-8"))
+    warns = check_settings(data)
+    if keep_default_stickers:
+        # Omitting the key makes apply_settings() keep the game's 61 defaults.
+        data.pop("stickers", None)
     data.setdefault("images", {})["giant"] = png_path.name
     if name:
         data.setdefault("giant", {})["name"] = name
     with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED) as zf:
         zf.write(str(png_path), png_path.name)
         zf.writestr("settings.json", json.dumps(data, ensure_ascii=False, indent=2))
-    return zip_path
+    return zip_path, warns
 
 
 def file_sha256(path):
@@ -197,6 +247,9 @@ def main():
                     help="settings.json template for the ZIP (defaults to assets/settings.template.json)")
     ap.add_argument("--name", default=None,
                     help="OC name written to giant.name inside the ZIP")
+    ap.add_argument("--keep-default-stickers", action="store_true",
+                    help="omit the stickers key so the game keeps its 61 default stickers "
+                         "(default: empty list, which removes them)")
     ap.set_defaults(desktop=True, make_zip=True)
     args = ap.parse_args()
 
@@ -273,8 +326,10 @@ def main():
         settings = (Path(args.settings) if args.settings else
                     Path(__file__).resolve().parent.parent / "assets" / "settings.template.json")
         try:
-            build_zip(out, zip_path, settings, args.name)
+            _, settings_warns = build_zip(out, zip_path, settings, args.name,
+                                          args.keep_default_stickers)
             report["zip"] = str(zip_path)
+            report["warnings"].extend(settings_warns)
         except Exception as exc:
             report["warnings"].append("zip build failed: %s" % exc)
             zip_path = None

@@ -78,6 +78,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
 # 3c. 只要 PNG、不要 ZIP：加 --no-zip
 # 3d. 改角色名/评级/贴纸：复制 assets/settings.template.json 改好后传 --settings my.json
+# 3e. 想保留官方默认贴纸：加 --keep-default-stickers（默认模板会清空它们）
 
 # 4. 自动导入并开始（可选依赖，默认上传 custom.zip）
 #    仅适合本机真实终端：脚本默认等待回车以保持窗口；agent 请用自带浏览器工具
@@ -141,7 +142,11 @@ assets/settings.template.json   ZIP 全定制模板
   自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
-  `giant.grades=false`、名字取文件名。详见 `references/import.md`。
+  `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。
+  `settings.json` 的 11 个顶层字段分两类：`sound_urls` / `stickers` / `demographics` /
+  `ego_tiers` **写了就全量覆盖**，其余不写即用游戏默认；坐标类 `*_spr`、`ego.levels`、
+  `paw.width` / `stomp_masks` 不要改，`build_sheet.py` 会对它们和 `grades` 结构打印 WARN。
+  详见 `references/import.md`。
 - **未去背的白底方块**会被 `validate.py` 的 `plate:*`（包围盒填充率）判 FAIL；
   合成保持 `--bg auto` 自动估色，必要时显式 `--bg white`。
 

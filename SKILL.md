@@ -73,7 +73,11 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.p
 - 用户**没有指定**图片放在哪里 → 保持默认，不加任何参数。
 - 用户**明确指定**了保存位置 → 传 `--no-desktop`，PNG 与 ZIP 都只按指定位置输出。
 - 只要 PNG、不要 ZIP → 传 `--no-zip`。
-- 要改评级/贴纸/描述 → 复制 `assets/settings.template.json` 改好后传 `--settings my.json`。
+- 要改评级/贴纸/描述 → 复制 `assets/settings.template.json` 改好后传 `--settings my.json`；
+  可设字段、合并/替换语义与禁止改的坐标见 `references/import.md`。
+- 想保留官方默认贴纸 → 传 `--keep-default-stickers`（默认模板的 `stickers: []` 会清空它们）。
+- 交付时**把本次 ZIP 实际改了哪些设定列给用户**，让他选 PNG / ZIP 时知道差异；
+  `custom.report.json` 里 settings 校验产生的 WARN 也要一并说明。
 - 桌面找不到（沙箱 / 特殊重定向）→ 打印 WARN，用 `--desktop-dir <路径>` 或环境变量
   `STOMP_DESKTOP_DIR` 指定。
 - `--out` 本身就在桌面时脚本不重复复制，两个 report 字段为 `None`，直接把 `--out`
@@ -123,7 +127,7 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 | `references/numbering.md` | 34 个格位的编号、出现时机与频率对照 |
 | `references/input-profiles.md` | A/B/C/D 四种素材模式的容错与降级 |
 | `references/prompts.md` | 首版 8 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
-| `references/import.md` | ZIP 默认自动上传、桌面双产物、PNG 备选、验收清单、故障排查 |
+| `references/import.md` | ZIP 默认自动上传、桌面双产物、settings.json 全字段与禁令、验收清单、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
 | `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP、两份都复制桌面 |
 | `scripts/validate.py` | 尺寸/装饰/去背/白板/贴底/帧间突变校验 |
@@ -135,6 +139,10 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 ## 硬性禁令
 
 - 不修改 `DECOR` 区域的任何像素，不填 `BLANK_CELLS`。
+- 不在 `settings.json` 里改任何 `*_spr` 坐标、`ego.levels`、`paw.width`、
+  `paw.stomp_masks` 或 `ego_tiers` 长度：它们与 26 格切片契约绑定，改了整张图会错位。
+- 不写半份 `sound_urls`（整体替换字段，省略该键才用默认音效）；`grades` 保持 ≤5 条，
+  名字/描述/台词用短英文（`VT323` 等宽字体，中文会溢出）。
 - 不把白底/不透明方块直接贴进角色格。
 - 不一次生成整张 1024×1024 精灵表。
 - 不让爪格底部留透明空隙（C11）：提示词要求贴底边，脚本裁剪+底对齐，`ground:*` 拦截。

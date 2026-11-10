@@ -12,6 +12,10 @@ ZIP 内的 `settings.json` 来自 `assets/settings.template.json`（可用 `--se
 模板还含 `giant.description`、`congrats`、`grades`（评级）、`stickers`；要改评级/贴纸时
 复制一份 settings.json 用 `--settings` 传入。**不要把文件夹本身压进 ZIP，两个文件都在根。**
 
+模板的 `"stickers": []` 会**清空**游戏默认贴纸（官方贴纸坐标按默认爪图设计，套到 OC 上
+容易错位，默认清空更安全）；想保留官方默认贴纸就加 `--keep-default-stickers`，
+脚本会省略该键。打包时脚本会校验 settings.json，危险改动写入 report 的 `warnings`。
+
 桌面副本路径记在 `custom.report.json` 的 `desktop_copy`（PNG）与 `desktop_zip`（ZIP），
 agent 应把两个路径都告诉用户；同名文件不会被覆盖（改用带时间戳的名字）。
 
@@ -45,8 +49,9 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路。
 - **上传 ZIP（默认）**：`settings.json` 生效，`giant.name` 为设定名字，`giant.description`、
   `congrats`、`grades`（评级）、`stickers` 按模板/自定义值加载；结算页会显示评级。
 - **上传 PNG**：`giant.name = 文件名去 .png`（`custom.png` → `CUSTOM`），
-  `giant.description = ""`，`giant.grades = false`（评级关闭，结算横幅只画单层、无评级抖动残影），
-  默认贴纸被清空。
+  `giant.description = ""`，`giant.grades = false`（评级关闭，结算横幅只画单层、无评级抖动残影）；
+  **贴纸保持游戏默认**（只有贴纸编辑器模式 `?stickers=true` 才清空）。反之默认 ZIP 模板的
+  `"stickers": []` 是整体替换，会清空默认贴纸——这是两种上传方式的观感差异之一。
 - 两种情况都只替换 `giant` 纹理；小人、背景、音效仍是默认 `city.png` 与站点资源；
   **所有坐标仍按 `references/layout.md`**。
 
@@ -63,9 +68,35 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路。
 ## 进阶：自定义 settings.json
 
 复制 `assets/settings.template.json` 改好后用 `--settings my.json` 传给 `build_sheet.py`，
-脚本会重新打包 ZIP。`settings.json` 可覆盖 `images.giant`、角色名/描述/评级、贴纸、音效、
-以及所有 `*_spr` 坐标；**ZIP 内 `settings.json` 必须在根**，相对路径资源会先在 ZIP 内查找。
-改坐标前先读 `references/layout.md`，改错会导致整套切片失效。
+脚本会重新打包并校验。**ZIP 内 `settings.json` 必须在根**；任何带 `url` 的属性都能写
+ZIP 内相对路径（加载时先在包内找，再回退站点 URL），所以自定义背景图/音效可直接放进包里。
+
+游戏 `apply_settings()` 只认 11 个顶层字段，分两种语义：
+
+| 语义 | 字段 | 常用可设内容 |
+|---|---|---|
+| **浅合并**（不写即用游戏默认） | `giant` | `name`、`description`（开场多行介绍）、`congrats`、`grades` |
+| | `images` | `giant`（脚本自动写包内图片名）、`env`（背景图） |
+| | `set` | `tiny_name*`、`bg_color`、`day_night_cycle`、`phrase_changes`、`closed_walls`、`starter_bugs`、`show_*` HUD 开关、`ambience_url` |
+| | `bug` | 小人动画/物理、`fits` 替代小人、`special_kill` |
+| | `paw` | 爪手感、`steamroller`、`wetness`、体力参数 |
+| | `ego` | 开关、增减倍率、`step` |
+| | `stain` | 污渍数量 |
+| **整体替换**（写了就全量覆盖） | `sound_urls` | `[URL, tag]` 列表；**必须列全想要的音效**，省略该键才用默认 |
+| | `stickers` | 61 条爪上贴纸坐标；`[]` 即清空 |
+| | `demographics` | 小人分布权重 |
+| | `ego_tiers` | 6 档 ego 阈值 |
+
+评级 `grades` 每条是 `[stat tag, 操作符, 数值, hint]`（可用 stat 见官方
+`generic.zip/stats.txt`，操作符为 `< > <= >= = !=` 六种）；`grades: null` 关闭评级并直接显示
+`congrats`；默认 5 条对应 6 个 rank，超过需重定义 `set.grade_spr`；条件按难度**从难到易**排序，
+结算显示最后一个未满足条件的 hint。名字/描述/台词由 canvas 的 `VT323` 等宽像素字体绘制，
+**建议短英文**：中文会字体回退，且宽度按 6px/字符估算容易溢出。
+
+**不要改的字段**：任何 `*_spr` 坐标（`front_spr` / `normal_spr` / `end_spr` / `grade_spr` 等）、
+`ego.levels`、`paw.width`、`paw.stomp_masks`、`ego_tiers` 的长度——它们与 1024×1024 的
+26 格切片契约绑定，改了会让整套图错位或表情帧数不匹配。脚本对这类字段、`grades` 结构、
+未知顶层 key、`sound_urls` 全量替换都会打印 WARN，交付前逐条确认。
 
 ## 备选路线 B：免上传直达链接（可选，非默认）
 
@@ -92,4 +123,8 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路。
 | 爪影消失 / 变成实色块 | 装饰区被 AI 重画 | `validate.py` 会 FAIL；从官方底板重取装饰区 |
 | 上传后游戏没反应 | 文件类型不是 `.png`/`.zip`，或 input 未等到 | 确认扩展名与 `wait_for_selector("#upload")` |
 | 脚还悬在空中，小人却已被踩死 | 爪格脚底离格子底边留了透明空隙（游戏按格底边对齐 `paw_y`，不看图片内容） | 重跑 `build_sheet.py`：爪格会自动裁剪透明边并底对齐；`validate.py` 的 `ground:*` 会拦截 >6px 的留白 |
+| ZIP 上传后没声音 | `sound_urls` 是整体替换，只写了部分标签 | 补全想要的标签，或整个删掉该键使用默认音效 |
+| 爪上看不到残留小人/贴纸 | 模板 `"stickers": []` 清空了默认贴纸 | 加 `--keep-default-stickers` 重新打包；需目检官方坐标是否贴合 OC 爪形 |
+| 角色名/评级台词显示不全 | 文本用 `VT323` 等宽字体按 6px/字符排版 | 改用短英文，缩短 `name` / `description` / `congrats` / hint |
+| `settings.json` 有 WARN | 改了坐标类字段或评级结构 | 按 `custom.report.json` 的 warnings 逐条修，详见上文「不要改的字段」 |
 | 无法自动上传 | agent 无浏览器能力 | 把桌面两份路径告诉用户，让用户手动拖入 `?character=custom` 页面 |
