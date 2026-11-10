@@ -294,8 +294,13 @@ def resize(rgba, sw, sh, tw, th):
     return out
 
 
-def fit(rgba, sw, sh, tw, th, margin=0):
-    """Fit into a (tw, th) transparent canvas, preserving aspect ratio."""
+def fit(rgba, sw, sh, tw, th, margin=0, anchor="center"):
+    """Fit into a (tw, th) transparent canvas, preserving aspect ratio.
+
+    anchor="bottom" puts the subject's bottom edge on the cell's bottom edge.
+    The game aligns paws by that edge (see references/layout.md), so a centered
+    paw would look like it never reaches the ground.
+    """
     avail_w = max(1, tw - 2 * margin)
     avail_h = max(1, th - 2 * margin)
     scale = min(avail_w / float(sw), avail_h / float(sh))
@@ -303,8 +308,42 @@ def fit(rgba, sw, sh, tw, th, margin=0):
     nh = max(1, int(round(sh * scale)))
     small = resize(rgba, sw, sh, nw, nh)
     out = blank(tw, th)
-    paste(out, tw, th, small, nw, nh, (tw - nw) // 2, (th - nh) // 2)
+    oy = (th - margin - nh) if anchor == "bottom" else (th - nh) // 2
+    paste(out, tw, th, small, nw, nh, (tw - nw) // 2, oy)
     return out
+
+
+def trim(rgba, w, h, thresh=12):
+    """Crop to the visible-pixel bounding box.
+
+    Image models usually center the paw in a square canvas. Trimming first lets
+    fit(anchor="bottom") place the actual sole on the cell bottom instead of
+    placing the model's empty margin there. Returns (nw, nh, cropped).
+    """
+    min_x, min_y, max_x, max_y = w, h, -1, -1
+    for y in range(h):
+        for x in range(w):
+            if rgba[(y * w + x) * 4 + 3] > thresh:
+                if x < min_x:
+                    min_x = x
+                if x > max_x:
+                    max_x = x
+                if y < min_y:
+                    min_y = y
+                if y > max_y:
+                    max_y = y
+    if max_x < 0:
+        return w, h, bytearray(rgba)
+    nw, nh = max_x - min_x + 1, max_y - min_y + 1
+    return nw, nh, crop(rgba, w, h, min_x, min_y, nw, nh)
+
+
+def bottom_gap(rgba, w, h, thresh=12):
+    """Distance from the last visible row to the bottom edge of the cell."""
+    for y in range(h - 1, -1, -1):
+        if any(rgba[(y * w + x) * 4 + 3] > thresh for x in range(w)):
+            return h - 1 - y
+    return h
 
 
 def cell_stats(rgba, w, h):

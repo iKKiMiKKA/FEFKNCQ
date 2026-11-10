@@ -53,6 +53,12 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.p
 已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
 `must_generate` 的 8 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
+**爪格脚底对齐（必做）**：`build_sheet.py` 对 `front_*` / `back_*` 会先裁掉透明边，再**底对齐**
+贴入，保证脚掌最底部紧贴格子底边。游戏把爪格底边当作脚底位置、碰撞判定不看图片内容，
+格底留白会导致"脚还悬在空中、小黑人却已被踩死"。表情格与结算横幅仍居中，不受影响。
+若用户只拿来一张已生成的旧 `custom.png`，按 `scripts/layout.py:CELLS` 切出各格再重新合成即可修正，
+**不需要重新生图**。
+
 **默认交付到桌面**：构建成功后脚本会自动把成品**复制一份到桌面**（`custom.png`；桌面已有
 同名文件时改用带时间戳的名字，绝不覆盖）。`custom.report.json` 的 `desktop_copy` 记录路径，
 **把该路径告诉用户**，方便用户自己拖进上传框。
@@ -69,7 +75,8 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 ```
 
 逐项检查 `references/frame-semantics.md` 末尾的自检清单。任何 FAIL 必须修复：
-`cutout:*`（未去背白块）、`continuity:*`（面积/质心突变）、`chrome:*`（UI 装饰被改）都会判 FAIL。
+`cutout:*`（未去背白块）、`continuity:*`（面积/质心突变）、`chrome:*`（UI 装饰被改）、
+`ground:*`（爪格脚底留白，游戏里表现为脚悬空却已踩死小人）都会判 FAIL。
 WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性，C1/C2/C5/C10 必须人工或 AI 目检。
 
 ### 5. 导入并开始游戏
@@ -116,6 +123,7 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 - 不修改 `DECOR` 区域的任何像素，不填 `BLANK_CELLS`。
 - 不把白底/不透明方块直接贴进角色格。
 - 不一次生成整张 1024×1024 精灵表。
+- 不让爪格脚底留透明空隙（C11）：提示词要求脚底贴底边，脚本裁剪+底对齐，`ground:*` 校验拦截。
 - 首版只生成 8 张必生格；并发失败时只回退串行，**不改动其余流程**。
 - 不覆盖桌面已有的 `custom.png`；用户明确指定保存位置时不额外复制桌面副本。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。

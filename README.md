@@ -119,6 +119,10 @@ assets/settings.template.json   ZIP 全定制模板
 - 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
   其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
   或 `--desktop-dir` 覆盖。桌面已有 `custom.png` 时改存带时间戳的文件名，绝不覆盖。
+- **脚必须贴格子底边**：游戏按爪格底边对齐 `paw_y`（碰撞只看 `paw_y` 与 `floor_y=228`，
+  不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，显示放大 2 倍后
+  就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 现在会对爪格自动裁剪透明边
+  并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
 
 ## 合规
 

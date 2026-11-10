@@ -101,12 +101,18 @@ def resolve_frames(frames_dir, manifest):
     return mapping
 
 
-def prepare_cell(path, w, h, bg, tol, flood, margin):
+def prepare_cell(path, w, h, bg, tol, flood, margin, grounded=False):
     sw, sh, rgba = png.read_png(path)
     if bg != "none":
         key = BG_KEYS.get(bg) if bg != "auto" else None
         png.remove_background(rgba, sw, sh, key=key, tol=tol, flood=flood)
-    return png.fit(rgba, sw, sh, w, h, margin=margin)
+    if grounded:
+        # The game aligns a paw by the CELL bottom edge, not by the visible
+        # sole. Image models center the paw, so trim its empty margins first,
+        # then bottom-align. Portraits and the banner stay centered.
+        sw, sh, rgba = png.trim(rgba, sw, sh)
+    return png.fit(rgba, sw, sh, w, h, margin=margin,
+                   anchor="bottom" if grounded else "center")
 
 
 def group_baseline(name, mapping):
@@ -216,8 +222,10 @@ def main():
                 continue
         if status is None:
             status = ("reused:%s" % root) if reused else "generated"
+        grounded = name.startswith("front_") or name.startswith("back_")
         try:
-            cell = prepare_cell(used, w, h, args.bg, args.tol, not args.no_flood, args.margin)
+            cell = prepare_cell(used, w, h, args.bg, args.tol, not args.no_flood,
+                                args.margin, grounded=grounded)
         except Exception as exc:
             report["errors"].append("cannot read %s (%s): %s" % (name, used, exc))
             report["cells"][name] = {"rect": [x, y, w, h], "status": "error", "source": used}

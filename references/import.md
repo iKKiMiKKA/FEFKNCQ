@@ -74,4 +74,5 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路；桌�
 | 头像框里是错位的图 | 表情格坐标/尺寸不对 | 核对 `layout.md`，重新 `build_sheet.py` |
 | 爪影消失 / 变成实色块 | 装饰区被 AI 重画 | `validate.py` 会 FAIL；从官方底板重取装饰区 |
 | 上传后游戏没反应 | 文件类型不是 `.png`/`.zip`，或 input 未等到 | 确认扩展名与 `wait_for_selector("#upload")` |
+| 脚还悬在空中，小人却已被踩死 | 爪格脚底离格子底边留了透明空隙（游戏按格底边对齐 `paw_y`，不看图片内容） | 重跑 `build_sheet.py`：爪格会自动裁剪透明边并底对齐；`validate.py` 的 `ground:*` 会拦截 >6px 的留白 |
 | 无法自动上传 | agent 无浏览器能力 | 生成文件后让用户手动拖入 `?character=custom` 页面 |

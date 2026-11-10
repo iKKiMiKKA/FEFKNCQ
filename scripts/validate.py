@@ -47,6 +47,8 @@ def main():
     ap.add_argument("--max-shift", type=float, default=90.0, help="max centroid jump between adjacent frames, px")
     ap.add_argument("--max-coverage-delta", type=float, default=0.35)
     ap.add_argument("--max-color-delta", type=float, default=95.0)
+    ap.add_argument("--max-ground-gap", type=int, default=6,
+                    help="max transparent gap below a paw, px (game aligns paws by the cell bottom edge)")
     ap.add_argument("--strict", action="store_true", help="treat warnings as failures")
     args = ap.parse_args()
 
@@ -79,6 +81,7 @@ def main():
                   "reserved cell has content (%.3f); harmless at default settings" % cov)
 
     stats = {}
+    paw_gaps = {}
     for name, (x, y, w, h) in CELLS.items():
         cell = png.crop(sheet, sw, sh, x, y, w, h)
         cov, mean, centroid = png.cell_stats(cell, w, h)
@@ -99,6 +102,19 @@ def main():
         else:
             v.add("PASS", "cell:" + name,
                   "coverage %.3f, corners %.2f, border %.2f" % (cov, corner, border))
+        if name.startswith(("front_", "back_")):
+            paw_gaps[name] = png.bottom_gap(cell, w, h)
+
+    bad_ground = {n: g for n, g in paw_gaps.items() if g > args.max_ground_gap}
+    if bad_ground:
+        for n, g in bad_ground.items():
+            v.add("FAIL", "ground:" + n,
+                  "paw bottom is %d px above the cell edge (limit %d); the game aligns paws by "
+                  "this edge, so the foot looks airborne when it hits. Rebuild with "
+                  "build_sheet.py (it trims and bottom-aligns paws)" % (g, args.max_ground_gap))
+    elif paw_gaps:
+        v.add("PASS", "ground:paws",
+              "all paws touch the cell bottom (max gap %d px)" % max(paw_gaps.values()))
 
     for group in GROUPS:
         members = GROUP_MEMBERS[group]
