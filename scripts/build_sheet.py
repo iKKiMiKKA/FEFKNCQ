@@ -76,7 +76,11 @@ def find_source(name, mapping):
     followed until a generated frame is found. This is what makes the fast
     first pass work, and lets later detail passes override any reused cell
     simply by dropping a new <cell>.png into frames/.
-    Returns (root_name, root_path, reused_flag).
+    Returns (root_name, root_path, reused_flag, terminal_name). terminal_name
+    is the last cell reached on the reuse chain; when nothing on the chain has
+    a file it identifies the correct group to take a baseline from (e.g. an
+    excite cell chained to a missing normal frame falls back to the normal
+    group instead of the empty excite group).
     """
     cur = name
     seen = set()
@@ -84,12 +88,12 @@ def find_source(name, mapping):
         seen.add(cur)
         path = mapping.get(cur)
         if path and Path(path).is_file():
-            return cur, path, cur != name
+            return cur, path, cur != name, cur
         nxt = REUSE_MAP.get(cur)
         if not nxt:
             break
         cur = nxt
-    return None, None, False
+    return None, None, False, cur
 
 
 def main():
@@ -132,7 +136,7 @@ def main():
 
     for name, (x, y, w, h) in CELLS.items():
         png.clear_rect(sheet, SHEET_W, SHEET_H, x, y, w, h)
-        root, used, reused = find_source(name, mapping)
+        root, used, reused, terminal = find_source(name, mapping)
         status = None
         if used is None:
             if args.missing == "error":
@@ -140,7 +144,7 @@ def main():
                 report["cells"][name] = {"rect": [x, y, w, h], "status": "missing"}
                 continue
             if args.missing == "baseline":
-                baseline, used = group_baseline(name, mapping)
+                baseline, used = group_baseline(terminal, mapping)
                 if used is None:
                     report["errors"].append("no frame and no baseline for %s" % name)
                     report["cells"][name] = {"rect": [x, y, w, h], "status": "missing"}
@@ -177,8 +181,10 @@ def main():
     gen = sum(1 for c in report["cells"].values() if c["status"] == "generated")
     reused = sum(1 for c in report["cells"].values()
                  if str(c["status"]).startswith("reused:"))
-    print("wrote %s (%d generated, %d reused, %d/%d cells filled)" %
-          (out, gen, reused, gen + reused, len(CELLS)))
+    baseline = sum(1 for c in report["cells"].values()
+                   if str(c["status"]).startswith("baseline:"))
+    print("wrote %s (%d generated, %d reused, %d baseline, %d/%d cells filled)" %
+          (out, gen, reused, baseline, gen + reused + baseline, len(CELLS)))
     missing_must = [n for n, present in report["must_generate"].items() if not present]
     if missing_must:
         print("WARN  must-generate frames not supplied: %s" % ", ".join(missing_must))
