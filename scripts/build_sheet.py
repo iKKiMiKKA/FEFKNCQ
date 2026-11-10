@@ -21,7 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import png  # noqa: E402
 from layout import (BG_KEYS, BASE_SHA256, CELLS, GROUP_MEMBERS,  # noqa: E402
-                    SHEET_H, SHEET_W)
+                    MUST_GENERATE, REUSE_MAP, SHEET_H, SHEET_W)
 
 
 def file_sha256(path):
@@ -69,6 +69,29 @@ def group_baseline(name, mapping):
     return None, None
 
 
+def find_source(name, mapping):
+    """Resolve a cell to a real image file.
+
+    A file present for the cell itself always wins. Otherwise REUSE_MAP is
+    followed until a generated frame is found. This is what makes the fast
+    first pass work, and lets later detail passes override any reused cell
+    simply by dropping a new <cell>.png into frames/.
+    Returns (root_name, root_path, reused_flag).
+    """
+    cur = name
+    seen = set()
+    while cur not in seen:
+        seen.add(cur)
+        path = mapping.get(cur)
+        if path and Path(path).is_file():
+            return cur, path, cur != name
+        nxt = REUSE_MAP.get(cur)
+        if not nxt:
+            break
+        cur = nxt
+    return None, None, False
+
+
 def main():
     ap = argparse.ArgumentParser(description="Build a STOMPGAME custom sheet")
     ap.add_argument("--frames", help="directory containing <cell>.png files")
@@ -103,20 +126,23 @@ def main():
             "base image hash differs from the recorded one; the upstream sheet may have changed. "
             "Re-check references/layout.md before using the result.")
 
+    report["must_generate"] = {
+        n: bool(mapping.get(n) and Path(mapping[n]).is_file()) for n in MUST_GENERATE
+    }
+
     for name, (x, y, w, h) in CELLS.items():
         png.clear_rect(sheet, SHEET_W, SHEET_H, x, y, w, h)
-        src = mapping.get(name)
-        status = "ok"
-        used = src
-        if not src or not Path(src).is_file():
+        root, used, reused = find_source(name, mapping)
+        status = None
+        if used is None:
             if args.missing == "error":
-                report["errors"].append("missing frame: %s" % name)
+                report["errors"].append("no frame and no reuse source for %s" % name)
                 report["cells"][name] = {"rect": [x, y, w, h], "status": "missing"}
                 continue
             if args.missing == "baseline":
                 baseline, used = group_baseline(name, mapping)
                 if used is None:
-                    report["errors"].append("missing frame and no baseline for %s" % name)
+                    report["errors"].append("no frame and no baseline for %s" % name)
                     report["cells"][name] = {"rect": [x, y, w, h], "status": "missing"}
                     continue
                 status = "baseline:%s" % baseline
@@ -125,6 +151,8 @@ def main():
                 report["cells"][name] = {"rect": [x, y, w, h], "status": "blank"}
                 report["warnings"].append("%s left blank" % name)
                 continue
+        if status is None:
+            status = ("reused:%s" % root) if reused else "generated"
         try:
             cell = prepare_cell(used, w, h, args.bg, args.tol, not args.no_flood, args.margin)
         except Exception as exc:
@@ -146,8 +174,14 @@ def main():
     report_path = Path(args.report) if args.report else out.with_suffix(".report.json")
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    ok = sum(1 for c in report["cells"].values() if c["status"] == "ok")
-    print("wrote %s (%d/%d cells from real frames)" % (out, ok, len(CELLS)))
+    gen = sum(1 for c in report["cells"].values() if c["status"] == "generated")
+    reused = sum(1 for c in report["cells"].values()
+                 if str(c["status"]).startswith("reused:"))
+    print("wrote %s (%d generated, %d reused, %d/%d cells filled)" %
+          (out, gen, reused, gen + reused, len(CELLS)))
+    missing_must = [n for n, present in report["must_generate"].items() if not present]
+    if missing_must:
+        print("WARN  must-generate frames not supplied: %s" % ", ".join(missing_must))
     print("report: %s" % report_path)
     for msg in report["warnings"]:
         print("WARN  %s" % msg)

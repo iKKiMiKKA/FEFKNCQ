@@ -124,9 +124,17 @@ def main():
     if args.report:
         rep = json.loads(Path(args.report).read_text(encoding="utf-8"))
         for name, info in rep.get("cells", {}).items():
-            status = info.get("status", "")
-            if status != "ok":
-                v.add("WARN", "build:" + name, "frame was not generated fresh (%s)" % status)
+            status = str(info.get("status", ""))
+            normal = status in ("ok", "generated") or status.startswith("reused:")
+            if not normal:
+                v.add("WARN", "build:" + name,
+                      "frame was neither generated nor reused (%s)" % status)
+        missing_must = [n for n, present in rep.get("must_generate", {}).items()
+                        if not present]
+        if missing_must:
+            v.add("WARN", "must_generate",
+                  "fast-pass frames missing (reuse fallback used): %s" %
+                  ", ".join(missing_must))
 
     summary = {"checks": v.rows, "failures": len(v.failures), "warnings": len(v.warnings)}
     if args.json_out:

@@ -31,21 +31,27 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 按 `references/input-profiles.md` 判定 A（头像+脚）/ B（一张全身图）/ C（头像+一张手）。
 整理 `oc_profile.md`，把角色固定特征写清楚。模式 C 严格遵守"手不能当脚"的规则。
 
-### 2. 逐格生成图片
+### 2. 生成首版（只 8 张，默认尝试并发）
 
-1. 读取 `references/prompts.md`，把通用前缀、负面提示词、连贯性固定句与逐格描述拼成提示词。
-2. 调用用户的生图能力（豆包电脑版 / 百度搭子 / workbuddy 等 agent 自动调用的生图工具），
-   **每格一张**，按"基准帧优先、其后以前一帧+基准帧为参考图"的批次顺序生成 26 格。
-3. 保存为 `frames/<cell>.png`；模型不支持透明时统一指定纯白/纯绿底，不要混用底色。
+1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 8 张必生格拼提示词：
+   `front_0` / `front_3` / `front_5` / `back_0` / `normal_1` / `normal_3` / `normal_5` / `endscreen`。
+   **表情三档跨度要大**（低 / 中 / 高 ego 的情绪差异明显可见）。
+2. **默认尝试并发**把这 8 张提交给生图通道，以缩短等待时间。
+3. **回退规则**：若通道不支持并发、报并发限制或并行结果串图，立即改为逐格串行；
+   **其余流程一律不变**（不改合成、校验、导入步骤，不重新设计提示词，不新增分支）。
+4. 保存为 `frames/<cell>.png`；模型不支持透明时统一指定纯白/纯绿底，不要混用底色。
+5. 需要编号对照图时运行
+   `python scripts/make_numbered_map.py --base generic.png --out numbered_map.png`（本地产出，不入库）。
 
-### 3. 合成
+### 3. 合成（自动复用其余 18 格）
 
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png --bg auto
 ```
 
-脚本从官方底板复制 UI 装饰，只清空并替换 26 个角色格；缺帧默认用同组基准帧占位并在报告标注。
-读取 `custom.report.json`，确认哪些格是 `baseline`/`blank`，这些格必须补画。
+脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；
+已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
+`must_generate` 的 8 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
 ### 4. 校验
 
@@ -65,25 +71,35 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 
 **不要用 `?character=custom` 作为"直接开玩"的链接**：该模式在未上传时隐藏爪与头像。
 
-### 6. 迭代
+### 6. 跑通后主动询问是否补细节
 
-用户提出"表情再凶一点 / 脚再大一点"时，只重新生成受影响的几格，重新执行第 3–5 步，
-不整组重抽，避免破坏已确认的连贯性。
+一旦用户已经能玩，**必须主动提问**："首版只生成了 8 张图、其余 18 格复用基准帧，
+是否需要补画更多细节？" 并按 `references/prompts.md` 第 9 节的优先级给出候选：
+兴奋表情、疲惫两帧、抬爪中间帧、后爪压力帧、表情过渡帧、完整兴奋列。
+用户未确认前不要自行追加生成，避免增加等待时间。
+
+### 7. 补细节 / 局部迭代
+
+用户确认补细节或提出"表情再凶一点"时，只把受影响的 `<cell>.png` 放进 `frames/`
+（或重新生成这几张），重新执行第 3–5 步。`build_sheet.py` 会自动用新文件覆盖该格的复用，
+**无需改配置、无需整组重抽**，避免破坏已确认的连贯性。
 
 ## 资源索引
 
 | 文件 | 用途 |
 |---|---|
 | `references/layout.md` | 唯一坐标契约、切片算法、屏幕位置、URL 参数 |
-| `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C10 连贯性约束、自检清单 |
+| `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C10 连贯性约束、复用白名单、自检清单 |
+| `references/numbering.md` | 34 个格位的编号、出现时机与频率对照 |
 | `references/input-profiles.md` | 三种素材模式的容错与降级 |
-| `references/prompts.md` | 逐格提示词模板、负面词、批次策略 |
+| `references/prompts.md` | 首版 8 格提示词、复用映射、并发/回退、补细节优先级 |
 | `references/import.md` | 自动上传步骤、ZIP/直达链接备选、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
-| `scripts/build_sheet.py` | 按坐标合成 1024×1024 RGBA 图 |
+| `scripts/build_sheet.py` | 按坐标合成并自动复用未生成格 |
 | `scripts/validate.py` | 尺寸/装饰/去背/帧间突变校验 |
 | `scripts/import_game.py` | Playwright 自动上传参考实现 |
-| `scripts/layout.py` / `scripts/png.py` | 坐标常量与零依赖 PNG 读写 |
+| `scripts/make_numbered_map.py` | 生成带编号的标注图（本地产出） |
+| `scripts/layout.py` / `scripts/png.py` | 坐标常量、必生/复用/编号表与零依赖 PNG 读写 |
 | `assets/settings.template.json` | ZIP 全定制模板 |
 
 ## 硬性禁令
@@ -91,6 +107,9 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 - 不修改 `DECOR` 区域的任何像素，不填 `BLANK_CELLS`。
 - 不把白底/不透明方块直接贴进角色格。
 - 不一次生成整张 1024×1024 精灵表。
+- 首版只生成 8 张必生格；并发失败时只回退串行，**不改动其余流程**。
+- 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。
+- 不把标注图或任何含上游像素的图片提交进仓库；只提交生成脚本与编号表。
 - 不在 `?giant=` / `?json=` 直达链接里带 `character=custom`。
 - 不打包或再分发作者原图；只引用官方下载地址。
 - 不修改游戏网站本身，只使用公开 URL 参数与官方上传控件。
