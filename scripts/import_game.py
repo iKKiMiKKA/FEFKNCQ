@@ -54,10 +54,15 @@ def main():
             print("clicked CLICK TO BEGIN")
         print("game URL: %s" % args.url)
         if not args.headless and not args.no_wait:
-            try:
-                input("Game window is open. Press Enter to close the browser...")
-            except EOFError:
-                pass
+            if sys.stdin.isatty():
+                try:
+                    input("Game window is open. Press Enter to close the browser...")
+                except EOFError:
+                    pass
+            else:
+                print("NOTE: stdin is not interactive, so the browser closes when this "
+                      "process exits. Agents should use their own browser tool; run this "
+                      "script in a real terminal to keep the window open.", file=sys.stderr)
         browser.close()
     return 0
 

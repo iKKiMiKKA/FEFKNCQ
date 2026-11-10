@@ -61,7 +61,8 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.p
 
 **默认交付到桌面**：构建成功后脚本会自动把成品**复制一份到桌面**（`custom.png`；桌面已有
 同名文件时改用带时间戳的名字，绝不覆盖）。`custom.report.json` 的 `desktop_copy` 记录路径，
-**把该路径告诉用户**，方便用户自己拖进上传框。
+**把该路径告诉用户**，方便用户自己拖进上传框。若 `--out` 本身就在桌面，脚本不重复复制、
+`desktop_copy` 为 `None`，此时直接把 `--out` 路径告诉用户。
 
 - 用户**没有指定**图片放在哪里 → 保持默认，不加任何参数。
 - 用户**明确指定**了保存位置 → 传 `--no-desktop`，只按指定位置输出，不额外复制。
@@ -105,7 +106,7 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 | 文件 | 用途 |
 |---|---|
 | `references/layout.md` | 唯一坐标契约、切片算法、屏幕位置、URL 参数 |
-| `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C10 连贯性约束、复用白名单、自检清单 |
+| `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C11 连贯性约束、复用白名单、自检清单 |
 | `references/numbering.md` | 34 个格位的编号、出现时机与频率对照 |
 | `references/input-profiles.md` | 三种素材模式的容错与降级 |
 | `references/prompts.md` | 首版 8 格提示词、复用映射、并发/回退、补细节优先级 |

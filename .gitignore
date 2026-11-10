@@ -4,11 +4,17 @@ generic.png
 # Generated working files
 frames/
 custom.png
+custom_*.png
 custom.report.json
+*.report.json
 numbered_map.png
+numbered_map*.png
 validate.report.json
 oc_profile.md
 *.zip
+
+# Any other --out / --desktop-dir target containing upstream pixels must
+# stay OUTSIDE the repository (see references/upstream.md).
 
 # Python
 __pycache__/

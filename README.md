@@ -69,6 +69,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
 
 # 4. 自动导入并开始（可选依赖）
+#    仅适合本机真实终端：脚本默认等待回车以保持窗口；agent 请用自带浏览器工具
 pip install -r requirements-browser.txt
 playwright install chromium
 python scripts/import_game.py --image custom.png
@@ -100,6 +101,8 @@ assets/settings.template.json   ZIP 全定制模板
 ## 依赖
 
 - 核心脚本：Python 3.8+，**仅标准库**（无 Pillow / numpy）。
+- **生图帧必须是 8-bit 非隔行 PNG**（RGBA/RGB/调色板均可）；16-bit、隔行、WebP/JPEG
+  需先转换，否则 `build_sheet.py` 记 error、`validate.py` 判 FAIL。
 - 浏览器自动上传：可选 `playwright>=1.44,<2`（见 `requirements-browser.txt`）。
   agent 若自带浏览器工具，可完全跳过。
 - 在中文 Windows 上运行 skill-creator 的 `quick_validate.py` / `package_skill.py` 时，
@@ -123,11 +126,16 @@ assets/settings.template.json   ZIP 全定制模板
   不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，显示放大 2 倍后
   就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 现在会对爪格自动裁剪透明边
   并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
+- **未去背的白底方块**会被 `validate.py` 的 `plate:*`（包围盒填充率）判 FAIL；
+  合成保持 `--bg auto` 自动估色，必要时显式 `--bg white`。
 
 ## 合规
 
 - 本项目为非官方第三方 skill，与游戏作者 ikkimikka 无关联。
 - 仓库**不打包**作者的 `generic.png`，运行时从官方地址下载；出处与 SHA256 见
   `references/upstream.md`。
+- **分发请用 GitHub 仓库 / zipball**：不要用 skill-creator 的 `package_skill.py` 直接打包
+  当前工作目录，它会把 `.git/`、`__pycache__/` 以及含上游像素的本地标注图
+  `numbered_map.png` 一起打进 zip。含像素产物一律输出到仓库外（`.gitignore` 已覆盖常见文件名）。
 - OC 素材需由用户自行确认使用权；生成内容请遵守所用生图服务与上游站点条款。
 - 游戏为"巨人踩踏小人"的卡通玩法，公开分享时请自行标注受众。

@@ -346,6 +346,34 @@ def bottom_gap(rgba, w, h, thresh=12):
     return h
 
 
+def bbox_fill(rgba, w, h, thresh=12):
+    """Fraction of the visible bounding box that is opaque.
+
+    A cut-out paw/face has transparent holes inside its bounding box (toe gaps,
+    outline curves). A flat background plate left behind by a failed background
+    removal fills its bounding box almost completely, even after fit() shrinks
+    it enough that corner/border heuristics no longer fire.
+    """
+    min_x, min_y, max_x, max_y = w, h, -1, -1
+    opaque = 0
+    for y in range(h):
+        for x in range(w):
+            if rgba[(y * w + x) * 4 + 3] > thresh:
+                opaque += 1
+                if x < min_x:
+                    min_x = x
+                if x > max_x:
+                    max_x = x
+                if y < min_y:
+                    min_y = y
+                if y > max_y:
+                    max_y = y
+    if max_x < 0:
+        return 0.0
+    area = (max_x - min_x + 1) * (max_y - min_y + 1)
+    return opaque / float(area)
+
+
 def cell_stats(rgba, w, h):
     """Return (alpha coverage, mean RGB of opaque pixels, centroid x/y)."""
     n = w * h

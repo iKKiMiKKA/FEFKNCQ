@@ -17,7 +17,9 @@
 6. 保持浏览器窗口打开，把游戏交给用户。
 
 参考实现：`scripts/import_game.py --image custom.png`（需 `requirements-browser.txt`）。
-若 agent 自带浏览器工具，优先用自带工具按上述步骤操作，不要用脚本的 `--wait` 阻塞会话。
+若 agent 自带浏览器工具，**优先用自带工具**按上述步骤操作。`scripts/import_game.py` 只是参考实现：
+默认会在真实终端里 `input()` 等待回车以保持窗口；在 agent/CI 的非交互环境 stdin 为 EOF，
+窗口会随进程退出而关闭（脚本会打印 NOTE 提示）。要立即关闭可传 `--no-wait`。
 
 ### 手动上传（用户自己来）
 
@@ -70,7 +72,7 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路；桌�
 | 症状 | 原因 | 处理 |
 |---|---|---|
 | 打开页面看不到爪和头像 | 用了 `?character=custom` 但未上传 | 完成上传后再看，或改用 `?giant=` 直达链接 |
-| 白色方块盖住画面 | 生成图未去背 | `--bg white` 重新合成，或用 `--bg none` + 已抠好的透明图 |
+| 白色方块盖住画面 | 生成图未去背 | 保持默认 `--bg auto` 重新合成（必要时显式 `--bg white`）；`validate.py` 的 `plate:*` 会判 FAIL |
 | 头像框里是错位的图 | 表情格坐标/尺寸不对 | 核对 `layout.md`，重新 `build_sheet.py` |
 | 爪影消失 / 变成实色块 | 装饰区被 AI 重画 | `validate.py` 会 FAIL；从官方底板重取装饰区 |
 | 上传后游戏没反应 | 文件类型不是 `.png`/`.zip`，或 input 未等到 | 确认扩展名与 `wait_for_selector("#upload")` |

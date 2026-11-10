@@ -49,7 +49,7 @@ python -c "import urllib.request; urllib.request.urlretrieve('https://ikkimikka.
 2. 查看游戏页面源代码中 `front_spr` / `back_spr` / `normal_spr` / `excite_spr` / `exhaust_spr` /
    `frame_spr` / `bg_spr` / `intro_flag_spr` / `end_spr` / `shadow_*_spr` 的定义。
 3. 更新 `scripts/layout.py` 的 `CELLS` / `DECOR` / `BLANK_CELLS` 与 `BASE_SHA256`。
-4. 更新 `references/layout.md`、`references/prompts.md` 的帧数与坐标描述。
+4. 更新 `references/layout.md` 的坐标表与 `references/frame-semantics.md` 的帧数/姿态描述。
 5. 用 `scripts/validate.py` 重新验证一张用新底板合成的图。
 
 ## 用户素材

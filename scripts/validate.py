@@ -92,6 +92,12 @@ def main():
         if cov < 0.02:
             v.add("FAIL", "cell:" + name, "cell is empty (coverage %.3f)" % cov)
             continue
+        if name != "endscreen":
+            fill = png.bbox_fill(cell, w, h)
+            if fill > 0.92 and cov > 0.20:
+                v.add("FAIL", "plate:" + name,
+                      "opaque rectangular plate detected (bbox fill %.3f); background removal "
+                      "likely failed. Use --bg white/green or supply a transparent PNG" % fill)
         if name != "endscreen" and (corner > 0.45 or (cov > 0.80 and border > 0.50)):
             v.add("FAIL", "cutout:" + name,
                   "opaque background plate detected (coverage %.3f, corners %.2f, border %.2f); "
@@ -142,7 +148,11 @@ def main():
         for name, info in rep.get("cells", {}).items():
             status = str(info.get("status", ""))
             normal = status in ("ok", "generated") or status.startswith("reused:")
-            if not normal:
+            if status == "error":
+                v.add("FAIL", "build:" + name,
+                      "frame could not be read (%s); check that it is an 8-bit "
+                      "non-interlaced PNG" % info.get("source"))
+            elif not normal:
                 v.add("WARN", "build:" + name,
                       "frame was neither generated nor reused (%s)" % status)
         missing_must = [n for n, present in rep.get("must_generate", {}).items()
