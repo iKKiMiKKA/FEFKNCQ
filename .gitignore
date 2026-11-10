@@ -1,0 +1,16 @@
+# Upstream template image is downloaded at runtime, never committed.
+generic.png
+
+# Generated working files
+frames/
+custom.png
+custom.report.json
+validate.report.json
+oc_profile.md
+*.zip
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/

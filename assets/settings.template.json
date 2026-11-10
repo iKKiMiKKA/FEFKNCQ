@@ -1,0 +1,18 @@
+{
+  "giant": {
+    "name": "MY OC",
+    "description": "An original character.\nCustom sheet generated with stompgama.",
+    "congrats": "nice work!",
+    "grades": [
+      ["ONE STOMP KILLS", ">=", 100, "get a big pile of 'em and stomp it in one go!"],
+      ["TOTAL ESCAPES", "<=", 120, "don't let so many get away!"],
+      ["TOTAL KILLS", ">=", 500, "stomp more of 'em!"],
+      ["TIME SPENT", "<=", 300, "pick up the pace!"],
+      ["WIPEOUTS", "<=", 2, "don't get winded!"]
+    ]
+  },
+  "images": {
+    "giant": "custom.png"
+  },
+  "stickers": []
+}
