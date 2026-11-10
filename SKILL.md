@@ -1,9 +1,12 @@
 ---
 name: stompgama
-description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompgame）的自定义角色图并直接开始游戏时应使用本技能，例如"帮我用 github 上的 stompgama 制作我的 OC 角色并进行大脚踩踏游戏"。本技能把用户提供的头像/脚/全身图转成符合官方 1024×1024 精灵表坐标的 custom.png，提供逐格生图提示词、合成与校验脚本，并指导自动上传到游戏页面；它保证生成图导入即可用，画面相似度由后续迭代决定。
+description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompgame）的自定义角色图并直接开始游戏时应使用本技能，例如"帮我用 github 上的 FEFKNCQ 制作我的 OC 角色并进行大脚踩踏游戏"（仓库原名 stompgama）。本技能把用户提供的头像/脚/全身图转成符合官方 1024×1024 精灵表坐标的 custom.png，提供逐格生图提示词、合成与校验脚本，并指导自动上传到游戏页面；它保证生成图导入即可用，画面相似度由后续迭代决定。
 ---
 
 # STOMPGAME OC 自定义角色图生成与导入
+
+> 仓库地址：https://github.com/ikkimikka/FEFKNCQ（原名 `stompgama`，已更名；
+> skill 内部标识 `stompgama` 保持不变，旧说法与新说法都能触发本技能）。
 
 ## 目标与边界
 

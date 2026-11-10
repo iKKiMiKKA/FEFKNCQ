@@ -1,9 +1,12 @@
-# stompgama
+# FEFKNCQ
 
 给 AI agent 用的 skill：把你的 OC 角色做成 [STOMPGAME](https://ikkimikka.net/stompgame/)
 （`?character=custom`）能直接导入的自定义角色图，并自动开始游戏。
 
-仓库：<https://github.com/ikkimikka/stompgama>
+仓库：<https://github.com/ikkimikka/FEFKNCQ>
+
+> 仓库原名 `stompgama`，2026-11-10 更名为 `FEFKNCQ`；旧地址会自动重定向。
+> skill 内部标识仍为 `stompgama`（小写，符合 skill 命名规范），不影响触发。
 
 ## 一句话用法
 
@@ -11,7 +14,7 @@
 附上你的 OC 参考图即可：
 
 ```
-帮我用 github 上的 stompgama 制作我的 OC 角色并进行大脚踩踏游戏
+帮我用 github 上的 FEFKNCQ 制作我的 OC 角色并进行大脚踩踏游戏
 ```
 
 agent 会：判定素材模式 → 按 `references/prompts.md` 逐格生成 26 张图 → 合成 1024×1024
