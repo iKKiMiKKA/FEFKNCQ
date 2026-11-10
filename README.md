@@ -22,6 +22,10 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 复用同组基准帧 → 合成 1024×1024 `custom.png` → 校验 → 打开游戏页面自动上传 → 点击开始。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
+**如果你没有指定图片放在哪里**，脚本会额外把成品**复制一份到桌面**（`custom.png`，
+同名文件不会被覆盖），可以直接拖进上传框自己上传；agent 会把桌面路径告诉你。
+若你指定了保存位置，agent 会改用 `--no-desktop`，不再额外复制。
+
 **跑通能玩后 agent 会主动询问是否补画更多细节**（兴奋表情、疲惫两帧、抬爪中间帧等），
 用户确认前不会自行加图。补细节只需往 `frames/` 多放几张 `<帧名>.png` 重新合成，
 单格文件会自动覆盖该格的复用，无需改配置。之后也可以直接说
@@ -57,9 +61,12 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
 
-# 3. 合成 + 校验
+# 3. 合成 + 校验（默认另复制一份到桌面，路径见 custom.report.json 的 desktop_copy）
 python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png --bg auto
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
+
+# 3b. 已指定保存位置、不想要桌面副本时
+python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
 
 # 4. 自动导入并开始（可选依赖）
 pip install -r requirements-browser.txt
@@ -68,7 +75,7 @@ python scripts/import_game.py --image custom.png
 ```
 
 也可以不装 Playwright：打开 <https://ikkimikka.net/stompgame/?character=custom>，
-把 `custom.png` 拖进上传框，再点击画布开始。
+把桌面上那份 `custom.png` 拖进上传框，再点击画布开始。
 
 ## 目录
 
@@ -83,7 +90,7 @@ references/import.md            自动导入、验收清单、故障排查
 references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
-scripts/build_sheet.py          合成并自动复用未生成格
+scripts/build_sheet.py          合成、复用未生成格、默认复制一份到桌面
 scripts/validate.py             校验（含帧间突变检测）
 scripts/import_game.py          Playwright 自动上传参考实现
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）
@@ -109,6 +116,9 @@ assets/settings.template.json   ZIP 全定制模板
 - 编号是**图位顺序**，不是动画顺序：前爪为 `P01→P05→P09→P02→P06→P10`。
   `F09–F12`（高 ego）、`F13/F14`（疲惫）、`P08/P10`（高压）出现频率低，`X01–X03`
   默认永不采样——这是首版敢复用 18 格的依据，详见 `references/numbering.md`。
+- 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
+  其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
+  或 `--desktop-dir` 覆盖。桌面已有 `custom.png` 时改存带时间戳的文件名，绝不覆盖。
 
 ## 合规
 

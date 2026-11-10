@@ -10,18 +10,69 @@ Frame files are named <cell>.png (see layout.py). Alternatively pass
 The official base image supplies all UI chrome (portrait frame/background,
 intro flag, shadow lattice) and reserved blank cells. Only the character
 cells are cleared and replaced, which keeps every coordinate exact.
+
+Unless the user chose an output location (--no-desktop), the finished sheet is
+also copied to the desktop so it can be uploaded manually.
 """
 
 import argparse
 import hashlib
 import json
+import os
+import shutil
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import png  # noqa: E402
 from layout import (BG_KEYS, BASE_SHA256, CELLS, GROUP_MEMBERS,  # noqa: E402
                     MUST_GENERATE, REUSE_MAP, SHEET_H, SHEET_W)
+
+
+def desktop_dir():
+    """Locate the desktop with the standard library only.
+
+    On Windows the shell API is asked first so OneDrive-redirected desktops
+    resolve correctly. STOMP_DESKTOP_DIR overrides detection for sandboxed
+    agents that expose a different desktop path.
+    """
+    override = os.environ.get("STOMP_DESKTOP_DIR")
+    if override:
+        p = Path(override).expanduser()
+        if p.is_dir():
+            return p
+    if os.name == "nt":
+        try:
+            import ctypes
+            buf = ctypes.create_unicode_buffer(1024)
+            if ctypes.windll.shell32.SHGetFolderPathW(None, 0, None, 0, buf) == 0 and buf.value:
+                p = Path(buf.value)
+                if p.is_dir():
+                    return p
+        except Exception:
+            pass
+    home = Path.home()
+    candidates = [home / "Desktop", home / "\u684c\u9762"]
+    candidates += sorted(home.glob("OneDrive*/Desktop"))
+    for p in candidates:
+        if p.is_dir():
+            return p
+    return None
+
+
+def copy_to_desktop(out, target):
+    """Copy the finished sheet to the desktop without overwriting anything."""
+    dest = target / "custom.png"
+    if dest.exists():
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        dest = target / ("custom_%s.png" % stamp)
+        n = 1
+        while dest.exists():
+            dest = target / ("custom_%s_%d.png" % (stamp, n))
+            n += 1
+    shutil.copy2(str(out), str(dest))
+    return dest
 
 
 def file_sha256(path):
@@ -109,6 +160,14 @@ def main():
     ap.add_argument("--margin", type=int, default=2, help="transparent padding inside each cell")
     ap.add_argument("--missing", default="baseline", choices=["error", "baseline", "blank"],
                     help="what to do when a frame file is absent")
+    desktop = ap.add_mutually_exclusive_group()
+    desktop.add_argument("--desktop", dest="desktop", action="store_true",
+                         help="also copy the finished sheet to the desktop (default)")
+    desktop.add_argument("--no-desktop", dest="desktop", action="store_false",
+                         help="skip the desktop copy when the user chose an output location")
+    ap.add_argument("--desktop-dir", default=None,
+                    help="override the detected desktop directory")
+    ap.set_defaults(desktop=True)
     args = ap.parse_args()
 
     mapping = resolve_frames(args.frames, args.manifest)
@@ -175,6 +234,21 @@ def main():
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     png.write_png(str(out), SHEET_W, SHEET_H, sheet)
+
+    if args.desktop:
+        ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
+        if ddir is None or not ddir.is_dir():
+            report["warnings"].append(
+                "desktop directory not found; skipped desktop copy "
+                "(pass --desktop-dir or set STOMP_DESKTOP_DIR)")
+        elif out.resolve().parent == ddir.resolve():
+            report["desktop_copy"] = None  # output is already on the desktop
+        else:
+            try:
+                report["desktop_copy"] = str(copy_to_desktop(out, ddir))
+            except Exception as exc:
+                report["warnings"].append("desktop copy failed: %s" % exc)
+
     report_path = Path(args.report) if args.report else out.with_suffix(".report.json")
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -189,6 +263,8 @@ def main():
     if missing_must:
         print("WARN  must-generate frames not supplied: %s" % ", ".join(missing_must))
     print("report: %s" % report_path)
+    if report.get("desktop_copy"):
+        print("desktop copy: %s" % report["desktop_copy"])
     for msg in report["warnings"]:
         print("WARN  %s" % msg)
     for msg in report["errors"]:

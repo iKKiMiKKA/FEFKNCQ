@@ -19,6 +19,14 @@
 参考实现：`scripts/import_game.py --image custom.png`（需 `requirements-browser.txt`）。
 若 agent 自带浏览器工具，优先用自带工具按上述步骤操作，不要用脚本的 `--wait` 阻塞会话。
 
+### 手动上传（用户自己来）
+
+`build_sheet.py` 默认会把同一张成品**复制一份到桌面**（`custom.png`，已有同名文件不会被
+覆盖），路径记在 `custom.report.json` 的 `desktop_copy`。agent 应把路径告诉用户，用户打开
+`https://ikkimikka.net/stompgame/?character=custom` 把桌面那份拖进上传框即可。
+agent 没有浏览器能力、或用户只想自己上传时走这条路；桌面副本与自动上传用的是同一张图，
+**不要重新生成**。用户明确指定了保存位置时脚本加 `--no-desktop`，不产生桌面副本。
+
 ### 上传 PNG 后的游戏行为（必须知道）
 
 - `giant.name = 文件名去 .png`（例如 `custom.png` → `CUSTOM`），`giant.description = ""`。

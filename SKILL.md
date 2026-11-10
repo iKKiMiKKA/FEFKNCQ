@@ -53,6 +53,15 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.p
 已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
 `must_generate` 的 8 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
+**默认交付到桌面**：构建成功后脚本会自动把成品**复制一份到桌面**（`custom.png`；桌面已有
+同名文件时改用带时间戳的名字，绝不覆盖）。`custom.report.json` 的 `desktop_copy` 记录路径，
+**把该路径告诉用户**，方便用户自己拖进上传框。
+
+- 用户**没有指定**图片放在哪里 → 保持默认，不加任何参数。
+- 用户**明确指定**了保存位置 → 传 `--no-desktop`，只按指定位置输出，不额外复制。
+- 桌面找不到（沙箱 / 特殊重定向）→ 脚本打印 WARN，可用 `--desktop-dir <路径>` 指定，
+  或设环境变量 `STOMP_DESKTOP_DIR`。
+
 ### 4. 校验
 
 ```
@@ -95,7 +104,7 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 | `references/prompts.md` | 首版 8 格提示词、复用映射、并发/回退、补细节优先级 |
 | `references/import.md` | 自动上传步骤、ZIP/直达链接备选、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
-| `scripts/build_sheet.py` | 按坐标合成并自动复用未生成格 |
+| `scripts/build_sheet.py` | 按坐标合成、自动复用未生成格、默认复制一份到桌面 |
 | `scripts/validate.py` | 尺寸/装饰/去背/帧间突变校验 |
 | `scripts/import_game.py` | Playwright 自动上传参考实现 |
 | `scripts/make_numbered_map.py` | 生成带编号的标注图（本地产出） |
@@ -108,6 +117,7 @@ WARN 仍需逐条目检。程序只能发现突变，不能判定解剖合理性
 - 不把白底/不透明方块直接贴进角色格。
 - 不一次生成整张 1024×1024 精灵表。
 - 首版只生成 8 张必生格；并发失败时只回退串行，**不改动其余流程**。
+- 不覆盖桌面已有的 `custom.png`；用户明确指定保存位置时不额外复制桌面副本。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。
 - 不把标注图或任何含上游像素的图片提交进仓库；只提交生成脚本与编号表。
 - 不在 `?giant=` / `?json=` 直达链接里带 `character=custom`。
