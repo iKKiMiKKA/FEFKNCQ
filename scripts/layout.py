@@ -89,33 +89,36 @@ BG_KEYS = {
     "magenta": (255, 0, 255),
 }
 
-# Fast first pass: 9 generated frames. The normal portrait column is reused
-# from normal_0, so the HUD face stays calm while ego climbs (the no-kill
-# state). The excite column is generated per early ego level, so every kill in
-# the 0/1/2 range flashes a clearly different excited face. Levels 3-5 reuse
-# normal_0 on the calm column and excite_2 on the kill column, so late kills
-# still show excitement (never fall back to the calm face). Everything else is
-# copied by build_sheet.py from the same group. Adding a file named <cell>.png
-# later automatically overrides its reuse entry, so refining details never
-# requires editing this table.
+# Fast first pass: 9 generated frames. The calm column generates two tiers
+# (normal_0 = calm 1, normal_1 = calm 2) and the kill column generates two
+# tiers (excite_0 = excited 1, excite_1 = excited 2), so ego 0 -> 1 already
+# shows a clear face change on both lines. normal_1/excite_1 are seeded from
+# the highest-tier designs (normal_5/excite_5) as a quick placeholder; a later
+# detail pass moves those two faces back to normal_5/excite_5 and regenerates
+# proper mid-tier faces for normal_1/excite_1. Levels 2-5 reuse normal_1 on
+# the calm column and excite_1 on the kill column. Everything else is copied by
+# build_sheet.py from the same group. Adding a file named <cell>.png later
+# automatically overrides its reuse entry, so refining details never requires
+# editing this table.
 MUST_GENERATE = [
     "front_0",    # raised paw
     "front_3",    # touchdown
     "front_5",    # maximum pressure
     "back_0",     # far paw baseline
-    "normal_0",   # ego 0: neutral face, reused by normal 1-5
-    "excite_0",   # ego 0 kill: excited, distinct from normal_0
-    "excite_1",   # ego 1 kill: distinct from normal_0
-    "excite_2",   # ego 2 kill: distinct from normal_0
+    "normal_0",   # calm tier 1 (ego 0 baseline)
+    "normal_1",   # calm tier 2 (seeded from the normal_5 design for now)
+    "excite_0",   # kill tier 1 (ego 0)
+    "excite_1",   # kill tier 2 (seeded from the excite_5 design for now)
     "endscreen",  # banner
 ]
 
 REUSE_MAP = {
     "front_1": "front_0", "front_2": "front_0", "front_4": "front_5",
     "back_1": "back_0", "back_2": "back_0", "back_3": "back_0", "back_4": "back_0",
-    "normal_1": "normal_0", "normal_2": "normal_0",
-    "normal_3": "normal_0", "normal_4": "normal_0", "normal_5": "normal_0",
-    "excite_3": "excite_2", "excite_4": "excite_2", "excite_5": "excite_2",
+    "normal_2": "normal_1", "normal_3": "normal_1",
+    "normal_4": "normal_1", "normal_5": "normal_1",
+    "excite_2": "excite_1", "excite_3": "excite_1",
+    "excite_4": "excite_1", "excite_5": "excite_1",
     "tired_0": "normal_0", "tired_1": "normal_0",
 }
 

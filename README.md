@@ -19,12 +19,12 @@
 ```
 
 agent 会：判定素材模式 → **首版生成 9 张必生图**（`front_0` / `front_3` / `front_5` /
-`back_0` / `normal_0` / `excite_0` / `excite_1` / `excite_2` /
+`back_0` / `normal_0` / `normal_1` / `excite_0` / `excite_1` /
 `endscreen`）→ 其余 17 格由脚本自动复用同组基准帧 → 合成 1024×1024 `custom.png` 与
 `custom.zip` → 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
 ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
-**无击杀时头像复用同一张平静脸；击杀（`excite_0/1/2`）三档各有明显不同的兴奋表情**，后期先复用最高档，
-用户提出再加图。
+**表情每列两档**：平静 `normal_0`（平静1）/`normal_1`（平静2），兴奋 `excite_0`/`excite_1`，
+后期复用第二档；`normal_1`/`excite_1` 先借用 F11/F12 的高档设计，后续再细化。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
@@ -56,11 +56,11 @@ ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上�
 
 - **保证**：坐标、尺寸、透明度、UI 装饰像素、帧间无突变、导入即可用。
 - **能自动拦截**：脚底悬空、未去背白块、空心描边腿、必生爪帧姿态雷同、前后爪不同源、
-  初期常态三档表情重复、初期击杀帧等于常态帧、UI 装饰被改（`validate.py`）。
+  平静脸两档重复、兴奋帧等于平静帧、UI 装饰被改（`validate.py`）。
 - **不保证**：AI 画得像不像 OC、脚底解剖是否正确、肉垫有没有在贴地帧露出来、是否真是同一只脚；
   这些仍需目检。
-  首版生成 9 张、其余 17 格复用：无击杀时头像复用同一张平静脸，击杀三档各有独立兴奋表情，
-  代价是 normal 不随 ego 升级、后期击杀复用最高档，属已知取舍，用户提出再加图。
+  首版生成 9 张、其余 17 格复用：表情每列两档（平静 1/2、兴奋 1/2），后期复用第二档；
+  代价是中间档未细分、`normal_1`/`excite_1` 暂用高档设计占位，属已知取舍，用户提出再加图。
 
 核心做法：不让图像模型一次画出整张精灵表，而是**逐格生成 + 脚本按坐标合成**，
 并把官方 `generic.png` 的 UI 装饰像素原样保留。
@@ -73,7 +73,7 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 
 # 2. 首版放 9 张图到 frames/（命名见 references/prompts.md）
 #    front_0.png / front_3.png / front_5.png / back_0.png
-#    normal_0.png / excite_0.png / excite_1.png / excite_2.png
+#    normal_0.png / normal_1.png / excite_0.png / excite_1.png
 #    endscreen.png
 #    其余 17 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
 
@@ -154,12 +154,13 @@ assets/settings.template.json   ZIP 全定制模板
 - **腿必须实体填充**：只画两条轮廓线的"空心腿"在游戏里会看成透明腿；提示词要求柱状实体
   并延伸到格顶，`validate.py` 的 `leg:*` 判 FAIL、`top:*` 检查腿是否到顶边。
 - **表情走两条线**：ego 等级 = `floor(ego_climb/1000)`，`normal` 列是"无击杀时"按等级显示，
-  `excite` 列只在**击杀得分后约 0.5 秒**闪现。所以首版把 `normal` 列统一复用平静脸
-  `normal_0`（头像不随 ego 升级），把击杀的三档兴奋脸放在 `excite_0/1/2`；
-  `validate.py` 的 `expression:normal-reuse`（normal 三档相同）是预期 WARN，
-  `expression:kill-ego`（击杀帧等于平静脸）判 FAIL。后期 `normal_1..5` 复用 `normal_0`、
-  `excite_3/4/5` 复用 `excite_2`，`tired_0/1` 也复用，属已知损失
-  （`expression:fast-pass` WARN）；跑通后等用户提出，再按 `references/prompts.md` 第 9 节补。
+  `excite` 列只在**击杀得分后约 0.5 秒**闪现。首版每列做两档：平静 `normal_0`/`normal_1`、
+  兴奋 `excite_0`/`excite_1`；`normal_1`/`excite_1` 先借用 `normal_5`/`excite_5` 的高档设计
+  （占位），后续移回 F11/F12 并重生成中度表情。`validate.py` 的 `expression:normal-reuse`
+  （`normal_0`/`normal_1` 相同）是 WARN，`expression:kill-ego`（兴奋帧等于平静脸）判 FAIL。
+  后期 `normal_2..5` 复用 `normal_1`、`excite_2..5` 复用 `excite_1`，`tired_0/1` 也复用，
+  属已知损失（`expression:fast-pass` WARN）；跑通后等用户提出，再按 `references/prompts.md`
+  第 9 节补。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
   `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。

@@ -216,31 +216,29 @@ def main():
                   "back paw silhouette is only %.0f%% of the front paw; C5 requires the same "
                   "foot slightly smaller/faded, not a different view" % (ratio * 100))
 
-    early_pairs = (("normal_0", "normal_1"), ("normal_1", "normal_2"),
-                   ("normal_0", "normal_2"))
-    if any(identical(a, b) for a, b in early_pairs):
+    if identical("normal_0", "normal_1"):
         v.add("WARN", "expression:normal-reuse",
-              "normal_0/1/2 are the same face: this is the normal-reuse mode (the HUD stays "
-              "calm until a kill, then the excite column flashes). This is the default "
-              "design; generate normal_1/2 only if you want ego-level expression steps.")
+              "normal_0 and normal_1 are the same face: the calm column shows only one tier. "
+              "Generate normal_1 as a clearly different second calm face, or accept a single "
+              "calm face if that is intended.")
     else:
-        v.add("PASS", "expression:early-ego", "ego 0/1/2 are three distinct faces")
+        v.add("PASS", "expression:early-ego", "normal_0 and normal_1 are two distinct calm faces")
 
     kill_pairs = (("normal_0", "excite_0"), ("normal_1", "excite_1"),
-                  ("normal_2", "excite_2"))
+                  ("normal_0", "excite_1"))
     if any(identical(a, b) for a, b in kill_pairs):
         v.add("FAIL", "expression:kill-ego",
-              "excite_0/1/2 must differ from normal_0/1/2; kills in ego 0/1/2 are the most "
-              "frequent, so reusing the normal face hides the kill reaction. Regenerate "
-              "excite_0/1/2 with an excited open-mouth / bright-eyed expression.")
+              "excite_0/1 must differ from the calm faces; kills in ego 0/1 are the most "
+              "frequent, so reusing a calm face hides the kill reaction. Regenerate "
+              "excite_0/1 with an excited open-mouth / bright-eyed expression.")
     else:
-        v.add("PASS", "expression:kill-ego", "ego 0/1/2 kill faces differ from normal")
+        v.add("PASS", "expression:kill-ego", "kill faces differ from the calm faces")
 
     losses = []
-    if all(identical("normal_%d" % i, "normal_2") for i in (3, 4, 5)):
-        losses.append("ego 3-5 reuse normal_2 (no late-game expression steps)")
-    if all(identical("excite_%d" % i, "normal_2") for i in (3, 4, 5)):
-        losses.append("excite 3-5 reuse normal_2 (no late-game kill feedback)")
+    if all(identical("normal_%d" % i, "normal_1") for i in (2, 3, 4, 5)):
+        losses.append("ego 2-5 reuse normal_1 (no further calm expression steps)")
+    if all(identical("excite_%d" % i, "excite_1") for i in (2, 3, 4, 5)):
+        losses.append("excite 2-5 reuse excite_1 (no further kill feedback)")
     if identical("tired_0", "tired_1"):
         losses.append("tired frames have no blink difference")
     if losses:

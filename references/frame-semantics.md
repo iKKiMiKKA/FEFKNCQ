@@ -28,28 +28,28 @@
 
 | 组 | 完整 14 帧设计语义（补图时） | 首版 9 帧实际 |
 |---|---|---|
-| `normal_0` | 最低 ego：平静/略困/无情绪 | 开局平静、略困、嘴角平直（必生基准脸） |
-| `normal_1` | 略微注意 | 复用 `normal_0`（无击杀时头像不变，默认设计） |
-| `normal_2` | 轻度兴趣、嘴角微扬 | 复用 `normal_0` |
-| `normal_3` | 愉悦、眼睛更亮 | 复用 `normal_0` |
-| `normal_4` | 明显满足、得意 | 复用 `normal_0` |
-| `normal_5` | 最高 ego：陶醉/眯眼满足 | 复用 `normal_0` |
-| `excite_0` | 与 `normal_0` 同一张脸的"刚击杀"兴奋版：眼睛睁大、眉毛上扬、张嘴笑 | 必生，必须明显区别于 `normal_0` |
-| `excite_1` | 同一张脸、更兴奋一档（ego 1） | 必生，必须明显区别于 `normal_0`/`excite_0` |
-| `excite_2` | 同一张脸、最高档兴奋（ego 2） | 必生，必须明显区别于 `normal_0`；后期复用它 |
-| `excite_3` / `excite_4` / `excite_5` | ego 3/4/5 的兴奋版 | 复用 `excite_2`（后期击杀仍有兴奋） |
+| `normal_0` | 最低 ego：平静/略困/无情绪 | 平静脸 1，开局基准（必生） |
+| `normal_1` | 略微注意 | 平静脸 2（必生；先采用 `normal_5` 的高档平静设计占位） |
+| `normal_2` | 轻度兴趣、嘴角微扬 | 复用 `normal_1` |
+| `normal_3` | 愉悦、眼睛更亮 | 复用 `normal_1` |
+| `normal_4` | 明显满足、得意 | 复用 `normal_1` |
+| `normal_5` | 最高 ego：陶醉/眯眼满足 | 复用 `normal_1`（其设计暂被 `normal_1` 借用，补细节时移回） |
+| `excite_0` | 与 `normal_0` 同一张脸的"刚击杀"兴奋版：眼睛睁大、眉毛上扬、张嘴笑 | 兴奋脸 1（必生，区别于平静脸） |
+| `excite_1` | 同一张脸、更兴奋一档（ego 1） | 兴奋脸 2（必生；先采用 `excite_5` 的最高档设计占位） |
+| `excite_2` | 同一张脸、最高档兴奋（ego 2） | 复用 `excite_1` |
+| `excite_3` / `excite_4` / `excite_5` | ego 3/4/5 的兴奋版 | 复用 `excite_1` |
 | `tired_0` / `tired_1` | 体力耗尽的两帧交替：疲惫、喘气、半睁眼；两帧之间只允许**眨眼/嘴部幅度/头部位移几像素**的微小差别，不得换表情、换角度 | 两格都复用 `normal_0` |
 
 `endscreen`：256×128 横幅，画角色与小人（tinies）的收尾画面，作为结算页顶部图；
 可以有背景（此格允许不透明），但不得含文字、边框、UI。
 
-**首版档位分配**：`normal` 列只生成一张平静脸 `normal_0`（`normal_1..5` 全部复用它，
-无击杀时头像始终平静）；`excite` 列生成 ego 0/1/2 三张独立兴奋脸 `excite_0/1/2`
-（必须是同一张脸被击杀刺激到的三档兴奋版：眼睛睁大、张嘴笑、脸红/汗滴/星星，
-明显区别于 `normal_0`，也不要三张互相雷同），`excite_3/4/5` 复用 `excite_2`，
-`tired_0/1` 复用 `normal_0`。想让无击杀时也随 ego 变化，补 `normal_1/2` 即可。
-`validate.py` 的 `expression:normal-reuse`（normal 三档相同）是 **WARN**（默认设计）；
-`expression:kill-ego`（击杀帧等于常态帧）会判 **FAIL**。
+**首版档位分配（每列两档）**：平静列 `normal_0`（平静1）/`normal_1`（平静2），
+兴奋列 `excite_0`（兴奋1）/`excite_1`（兴奋2）；`normal_2..5` 复用 `normal_1`、
+`excite_2..5` 复用 `excite_1`，`tired_0/1` 复用 `normal_0`。`normal_1`/`excite_1`
+目前借用 `normal_5`/`excite_5` 的高档设计作占位，补细节时把这两张移回 F11/F12，
+再为 F03/F04 重生成中度表情。
+`validate.py` 的 `expression:normal-reuse`（`normal_0`/`normal_1` 相同）是 **WARN**；
+`expression:kill-ego`（兴奋帧等于平静帧）会判 **FAIL**。
 
 ## 4. 连贯性硬约束（必须写进每条提示词）
 
@@ -91,7 +91,7 @@
 ## 5. 生成策略（防突变的工程做法）
 
 1. 首版按 `references/prompts.md` **生成 9 张必生帧**：`front_0`、`front_3`、`front_5`、
-   `back_0`、`normal_0`、`excite_0`、`excite_1`、`excite_2`、
+   `back_0`、`normal_0`、`normal_1`、`excite_0`、`excite_1`、
    `endscreen`；其余 17 格由 `build_sheet.py` 按 `REUSE_MAP` 复用同组基准帧
    （详见文末「首版复用白名单」）。
 2. 用户确认补细节后，新增的每一帧都以**同组前一帧 + 基准帧**作为参考图，
@@ -100,8 +100,8 @@
 4. 合成后运行 `validate.py`：除原有的 `chrome:*` / `plate:*` / `ground:*` /
    `continuity:*` 外，还会检查 `leg:*`（空心腿，FAIL）、`top:*`（腿没到顶边）、
    `pose:*`（必生爪帧姿态无差异）、`pressure:*`（压扁反向）、`back:*`（前后爪不同源）、
-   `expression:normal-reuse`（normal 三档相同，默认设计，WARN）、`expression:kill-ego`
-   （击杀帧等于平静脸，FAIL）、`expression:fast-pass`（后期复用损失，WARN）。
+   `expression:normal-reuse`（`normal_0`/`normal_1` 相同，WARN）、`expression:kill-ego`
+   （兴奋帧等于平静脸，FAIL）、`expression:fast-pass`（后期复用损失，WARN）。
    **程序只能发现几何与统计异常，不能判定"脚底画得对不对 / 是不是同一只脚 /
    有没有擅自脱掉鞋或手套"**，C1/C2/C5/C10 仍必须人工或 AI 目检。
 5. 目检不通过 → 只重画有问题的那几格，重新 `build_sheet.py`，不要整组重来。
@@ -114,15 +114,15 @@
 - [ ] `front_5` 比 `front_3` 更宽更扁、污渍最多（`pressure:*` 无 WARN）
 - [ ] 后爪与前爪同视角、只缩小 10–15%（`back:*` 无 WARN）
 - [ ] 腿/手臂实体填充并延伸到顶边，不是空心描边（`leg:*` 无 FAIL、`top:*` 无 WARN）
-- [ ] 无击杀时（`normal` 列）复用一张平静脸（`expression:normal-reuse` 为预期 WARN，非错误）
-- [ ] ego 0/1/2 的击杀帧 `excite_0/1/2` 明显不同于平静脸（`expression:kill-ego` 无 FAIL）
+- [ ] 平静列做出两档 `normal_0`/`normal_1`（`expression:normal-reuse` 无 WARN）
+- [ ] 兴奋帧 `excite_0`/`excite_1` 明显不同于平静脸（`expression:kill-ego` 无 FAIL）
 - [ ] 肉垫/掌垫只在抬起帧（`front_0/1/2`）可见，触地/加压/远景帧不露肉垫（C12）
 - [ ] 参考图穿鞋/戴手套时，11 格都是同款鞋/手套，没有变成光脚/裸手或中途换款
 - [ ] 已把首版复用损失（后期表情不升级、击杀无反馈等）告知用户（`expression:fast-pass` 为预期 WARN）
 - [ ] 趾数/掌纹（裸露时）、鞋袜/手套款式与饰品、配色在所有爪格一致
 - [ ] 前爪 0→5 是一个连贯下落动作，后爪 0→4 是连贯加压
 - [ ] 污渍与压扁程度随帧号单调增加
-- [ ] 12 个 ego 表情是同一张脸，normal 与 excite 成对
+- [ ] 12 个 ego 表情是同一张脸，normal 与 excite 成对（平静 1/2、兴奋 1/2 各成对）
 - [ ] tired 两帧只差眨眼/嘴部微小幅度
 - [ ] 每格背景透明，四角无白块，主体未越界
 - [ ] 装饰区（白框/棋盘格/灰条/影子小格）与官方底板逐像素一致
@@ -131,18 +131,17 @@
 
 ## 首版复用白名单（C 档，9 张必生）
 
-首版生成 `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `excite_0` /
-`excite_1` / `excite_2` / `endscreen`，其余 17 格由
-`build_sheet.py` 按 `REUSE_MAP` 复制同组基准帧。**无击杀时（normal）复用平静脸，
-击杀（excite）初期三档独立、后期复用最高档**。
+首版生成 `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
+`excite_0` / `excite_1` / `endscreen`，其余 17 格由
+`build_sheet.py` 按 `REUSE_MAP` 复制同组基准帧。**表情每列两档，后期复用第二档**。
 
 **允许复用**：
 
 - `front_1` / `front_2` ← `front_0`（空中段恒定，只在触地时切换一次）
 - `front_4` ← `front_5`（地面高压段恒定）
 - `back_1..4` ← `back_0`（后爪全程同图）
-- `normal_1..5` ← `normal_0`（无击杀时头像始终平静，不随 ego 升级）
-- `excite_3` / `excite_4` / `excite_5` ← `excite_2`（后期击杀复用最高档兴奋脸）；
+- `normal_2..5` ← `normal_1`（无击杀时沿用第二档平静脸）
+- `excite_2..5` ← `excite_1`（后期击杀沿用第二档兴奋脸）；
   `tired_0/1` ← `normal_0`
 
 **禁止复用**：
@@ -151,6 +150,6 @@
 - 不得用镜像、翻转或程序化插值制造"另一只脚"或中间姿态（违反 C1/C2/C4）。
 - 不得把 `endscreen` 复制进任何 160×256 / 128×128 角色格。
 
-**已知首版损失**（导入后主动询问用户是否补画，用户提出再加图）：无击杀时头像不随 ego
-升级、后期击杀不逐档升级、疲惫眨眼动画、抬爪/加压/后爪压力渐变。补齐方式是把对应
-`<cell>.png` 放进 `frames/` 重新合成，单格文件优先于复用映射。
+**已知首版损失**（导入后主动询问用户是否补画，用户提出再加图）：表情只做两档、中间档
+未细分（`normal_1`/`excite_1` 暂用高档设计占位）、疲惫眨眼动画、抬爪/加压/后爪压力渐变。
+补齐方式是把对应 `<cell>.png` 放进 `frames/` 重新合成，单格文件优先于复用映射。
