@@ -29,10 +29,9 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
 11 个爪格会全部生成真正的手；只发来一张手部参考图不算，仍按脚生成。
 
-**如果你没有指定图片放在哪里**，脚本会把 `custom.png` 与 `custom.zip`
-**各复制一份到桌面**（同名文件不会被覆盖，改用带时间戳的名字），agent 会把两个桌面路径
-都告诉你，想自己上传哪一份都行。若你指定了保存位置，agent 会改用 `--no-desktop`，
-不再额外复制。
+**如果你没有指定图片放在哪里**，脚本会**把 `custom.png` 与 `custom.zip` 直接生成到桌面**
+（不留在项目目录；同名文件不会被覆盖，改用带时间戳的名字），agent 会把两个桌面路径都告诉
+你，想自己上传哪一份都行。若你明确要求放到别处且不要桌面副本，agent 会改用 `--out <路径> --no-desktop`。
 
 **跑通能玩后 agent 会主动询问是否补画更多细节**（后期表情升级、击杀兴奋反馈、
 疲惫两帧、抬爪中间帧等），
@@ -78,10 +77,10 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
 
-# 3. 合成 + 校验（默认生成 PNG + ZIP，并各复制一份到桌面）
-python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png --bg auto --name "MY OC"
+# 3. 合成 + 校验（默认直接把 PNG + ZIP 生成到桌面，不留在项目目录）
+python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "MY OC"
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
-#    桌面路径见 custom.report.json 的 desktop_copy / desktop_zip
+#    custom.png / custom.zip 默认落在桌面；桌面路径见 custom.report.json 的 desktop_copy / desktop_zip
 
 # 3b. 已指定保存位置、不想要桌面副本时
 python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
@@ -113,7 +112,7 @@ references/import.md            自动导入、验收清单、故障排查
 references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
-scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP、两份都复制到桌面
+scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP，默认直接落桌面
 scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/初期表情/帧间突变）
 scripts/import_game.py          Playwright 自动上传参考实现（默认上传 ZIP）
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）

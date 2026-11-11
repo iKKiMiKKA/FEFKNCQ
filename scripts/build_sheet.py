@@ -2,7 +2,7 @@
 """Compose a STOMPGAME custom.png from per-cell images.
 
 Usage:
-  python scripts/build_sheet.py --frames frames/ --base generic.png --out custom.png
+  python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"
 
 Frame files are named <cell>.png (see layout.py). Alternatively pass
 --manifest frames.json, a mapping of cell name -> image path.
@@ -12,9 +12,11 @@ intro flag, shadow lattice) and reserved blank cells. Only the character
 cells are cleared and replaced, which keeps every coordinate exact.
 
 Both the PNG and an upload-ready ZIP (image + settings.json at the zip root)
-are produced. Unless the user chose an output location (--no-desktop), both are
-copied to the desktop so the user can pick either one. Browser-capable agents
-upload the ZIP by default: its settings.json carries the character name and grades.
+are produced. By default both are written **directly to the desktop** (not to
+the project / conversation folder) so the user can find and upload them at once;
+pass --out to place them elsewhere, or --no-desktop to skip the desktop copy.
+Browser-capable agents upload the ZIP by default: its settings.json carries the
+character name and grades.
 The settings.json is checked against the layout contract before packing.
 """
 
@@ -223,7 +225,10 @@ def main():
     ap.add_argument("--frames", help="directory containing <cell>.png files")
     ap.add_argument("--manifest", help="JSON mapping of cell name -> image path")
     ap.add_argument("--base", required=True, help="official generic.png base")
-    ap.add_argument("--out", default="custom.png")
+    ap.add_argument("--out", default=None,
+                     help="output PNG path; defaults to the desktop so deliverables "
+                          "are easy to find and upload (use --no-desktop to keep them "
+                          "out of the desktop, or --out to choose another location)")
     ap.add_argument("--report", default=None)
     ap.add_argument("--bg", default="auto", choices=["auto", "none", "white", "green", "black", "magenta"])
     ap.add_argument("--tol", type=int, default=38, help="background color tolerance")
@@ -252,6 +257,10 @@ def main():
                          "(default: empty list, which removes them)")
     ap.set_defaults(desktop=True, make_zip=True)
     args = ap.parse_args()
+
+    if args.out is None:
+        ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
+        args.out = str((ddir or Path.cwd()) / "custom.png")
 
     mapping = resolve_frames(args.frames, args.manifest)
     bw, bh, base_rgba = png.read_png(args.base)
