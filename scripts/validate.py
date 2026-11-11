@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import png  # noqa: E402
 from layout import (BLANK_CELLS, CELLS, DECOR, GROUPS,  # noqa: E402
-                    GROUP_MEMBERS, SHEET_H, SHEET_W)
+                    GROUP_MEMBERS, MUST_GENERATE, SHEET_H, SHEET_W)
 
 
 class Verdict:
@@ -49,6 +49,14 @@ def main():
     ap.add_argument("--max-color-delta", type=float, default=95.0)
     ap.add_argument("--max-ground-gap", type=int, default=6,
                     help="max transparent gap below a paw, px (game aligns paws by the cell bottom edge)")
+    ap.add_argument("--min-leg-coverage", type=float, default=0.10,
+                    help="min opaque coverage in the top 30% of a paw cell; 0 disables the hollow-leg check")
+    ap.add_argument("--max-top-gap", type=int, default=8,
+                    help="max empty space above a paw before the leg starts, px")
+    ap.add_argument("--min-pose-diff", type=float, default=0.10,
+                    help="min fraction of differing pixels between generated front frames")
+    ap.add_argument("--min-back-ratio", type=float, default=0.60,
+                    help="min back/front paw coverage ratio (C5 same-foot perspective)")
     ap.add_argument("--strict", action="store_true", help="treat warnings as failures")
     args = ap.parse_args()
 
@@ -142,6 +150,87 @@ def main():
                 v.add("WARN", code, "average color changes %.1f; check style consistency" % dcol)
             else:
                 v.add("PASS", code, "shift %.1f px, coverage delta %.3f, color delta %.1f" % (shift, dcov, dcol))
+
+    # --- semantic checks: catch "nothing changed" and hollow limbs ---
+    # Continuity only detects abrupt jumps. A sheet where the raised paw never
+    # shows its sole, the legs are outline-only, or the first three ego levels
+    # are one identical face passes every continuity check, so measure those
+    # failure modes explicitly.
+    def cell_rgba(name):
+        x, y, w, h = CELLS[name]
+        return bytearray(png.crop(sheet, sw, sh, x, y, w, h)), w, h
+
+    def alpha_diff(a, b):
+        if len(a) != len(b):
+            return 1.0
+        return sum(1 for i in range(3, len(a), 4)
+                   if (a[i] >= 12) != (b[i] >= 12)) / float(len(a) // 4)
+
+    def identical(a, b):
+        return bytes(png.crop(sheet, sw, sh, *CELLS[a])) == bytes(png.crop(sheet, sw, sh, *CELLS[b]))
+
+    paws = {n: cell_rgba(n) for n in CELLS if n.startswith(("front_", "back_"))}
+    hollow, short_top = [], []
+    for name, (cell, w, h) in paws.items():
+        band = max(1, int(h * 0.3))
+        top_cov = png.cell_stats(cell[:w * band * 4], w, band)[0]
+        trimmed_h = png.trim(bytearray(cell), w, h)[1]
+        top_gap = h - trimmed_h - png.bottom_gap(cell, w, h)
+        if args.min_leg_coverage > 0 and top_cov < args.min_leg_coverage:
+            hollow.append("%s(%.3f)" % (name, top_cov))
+        if top_gap > args.max_top_gap:
+            short_top.append("%s(%dpx)" % (name, top_gap))
+    if hollow:
+        v.add("FAIL", "leg:paws",
+              "%d paw cells have hollow/outline-only legs (top 30%% coverage < %.3f): %s. "
+              "Draw a solid filled leg/arm reaching the top edge; see prompts.md"
+              % (len(hollow), args.min_leg_coverage, ", ".join(hollow)))
+    else:
+        v.add("PASS", "leg:paws", "all paw legs are solid")
+    if short_top:
+        v.add("WARN", "top:paws",
+              "leg/arm does not reach the cell top in: %s. It will look abruptly shorter "
+              "in those frames" % ", ".join(short_top))
+
+    pose_frames = [n for n in MUST_GENERATE if n.startswith("front_")]
+    for a, b in zip(pose_frames, pose_frames[1:]):
+        if a not in paws or b not in paws:
+            continue
+        diff = alpha_diff(paws[a][0], paws[b][0])
+        if diff < args.min_pose_diff:
+            v.add("WARN", "pose:%s->%s" % (a, b),
+                  "only %.1f%% of pixels differ; these must be distinct poses "
+                  "(raised paw showing the sole -> touchdown -> max pressure)" % (diff * 100))
+
+    if "front_3" in stats and "front_5" in stats:
+        c3, c5 = stats["front_3"]["coverage"], stats["front_5"]["coverage"]
+        if c5 < c3 * 0.9:
+            v.add("WARN", "pressure:front_5",
+                  "max-pressure frame is smaller than the touchdown frame (%.3f < %.3f); "
+                  "it should look wider/flatter, not thinner" % (c5, c3))
+
+    if "front_0" in stats and "back_0" in stats:
+        ratio = stats["back_0"]["coverage"] / max(stats["front_0"]["coverage"], 1e-6)
+        if ratio < args.min_back_ratio:
+            v.add("WARN", "back:same-foot",
+                  "back paw silhouette is only %.0f%% of the front paw; C5 requires the same "
+                  "foot slightly smaller/faded, not a different view" % (ratio * 100))
+
+    losses = []
+    if all(identical("normal_0", n) for n in ("normal_1", "normal_2")):
+        losses.append("ego 0-2 share one face (no expression change early on)")
+    if all(identical("normal_%d" % i, "excite_%d" % i) for i in range(6)):
+        losses.append("excite column identical to normal (no kill feedback)")
+    if any(identical(a, b) for a, b in (("normal_1", "normal_3"),
+                                        ("normal_3", "normal_5"),
+                                        ("normal_1", "normal_5"))):
+        losses.append("duplicate expression tiers")
+    if identical("tired_0", "tired_1"):
+        losses.append("tired frames have no blink difference")
+    if losses:
+        v.add("WARN", "expression:fast-pass",
+              "fast-pass reuse losses: " + "; ".join(losses) + ". Tell the user about these; "
+              "see prompts.md section 9 for refinement priority")
 
     if args.report:
         rep = json.loads(Path(args.report).read_text(encoding="utf-8"))

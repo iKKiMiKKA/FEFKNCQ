@@ -50,7 +50,10 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 ## 这个 skill 保证什么
 
 - **保证**：坐标、尺寸、透明度、UI 装饰像素、帧间无突变、导入即可用。
-- **不保证**：AI 画得像不像 OC。画面质量靠与 agent 继续讨论、逐格重画。
+- **能自动拦截**：脚底悬空、未去背白块、空心描边腿、必生爪帧姿态雷同、前后爪不同源、
+  UI 装饰被改（`validate.py`）。
+- **不保证**：AI 画得像不像 OC、脚底解剖是否正确、是否真是同一只脚；这些仍需目检。
+  首版只生 8 张、其余 18 格复用，会让初期 ego 0–2 表情相同、击杀无兴奋反馈，属已知取舍。
 
 核心做法：不让图像模型一次画出整张精灵表，而是**逐格生成 + 脚本按坐标合成**，
 并把官方 `generic.png` 的 UI 装饰像素原样保留。
@@ -105,7 +108,7 @@ references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
 scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP、两份都复制到桌面
-scripts/validate.py             校验（含帧间突变检测）
+scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/帧间突变）
 scripts/import_game.py          Playwright 自动上传参考实现（默认上传 ZIP）
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）
 assets/settings.template.json   ZIP 全定制模板
@@ -140,6 +143,11 @@ assets/settings.template.json   ZIP 全定制模板
   与 `floor_y=228`，不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，
   显示放大 2 倍后就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 会对爪格
   自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
+- **腿必须实体填充**：只画两条轮廓线的"空心腿"在游戏里会看成透明腿；提示词要求柱状实体
+  并延伸到格顶，`validate.py` 的 `leg:*` 判 FAIL、`top:*` 检查腿是否到顶边。
+- **首版初期看不到表情变化**：`normal_0/1/2`、`excite_0/1/2`、`tired_0/1` 共用一张低档脸，
+  ego 等级 = `floor(ego_climb/1000)`，要攒到约 3000 点才第一次换脸；`expression:fast-pass`
+  会提示，跑通后按 `references/prompts.md` 第 9 节优先补 `normal_0` / `normal_2` / `excite_1`。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
   `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。
