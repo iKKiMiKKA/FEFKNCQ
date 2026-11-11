@@ -214,7 +214,7 @@ ego 0→1 立刻看到明显表情差。后续补细节时，把这两张脸移�
 
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"
-#   不加 --out 时，默认产物落在桌面且文件名自动带角色名 + 时间戳，绝不覆盖旧产物
+#   默认产物落在系统临时目录（调试不污染桌面）；最终交付加 --deliver 才复制一份到桌面
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
 ```
 

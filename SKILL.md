@@ -62,10 +62,11 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 5. 需要编号对照图时运行
    `python scripts/make_numbered_map.py --base generic.png --out numbered_map.png`（本地产出，不入库）。
 
-### 3. 合成（自动复用其余 17 格，产出 PNG + ZIP，默认落桌面且文件名带角色名/时间戳）
+### 3. 合成（自动复用其余 17 格，产出 PNG + ZIP；调试产物在临时目录，最终交付加 --deliver 才复制到桌面）
 
 ```
-python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"
+python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"   # 调试：产物在临时目录
+# 最终交付时加 --deliver，复制一份到桌面
 ```
 
 脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；
@@ -78,22 +79,24 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --na
 表情格与结算横幅仍居中。若用户只拿来一张已生成的旧 `custom.png`，按
 `scripts/layout.py:CELLS` 切出各格再重新合成即可修正，**不需要重新生图**。
 
-**默认直接把两件产物生成到桌面**：不加 `--out` 时，文件名自动带角色名（`--name`）与生成时间戳（如 `<名字>_custom_20261111_120000.png` 与同名 `.zip`），**绝不覆盖旧产物**；
-（ZIP 根目录含图片与 `settings.json`，`images.giant` 自动指向 ZIP 内图片名，
-`--name` 写入 `giant.name`，模板带评级与贴纸）**直接写到桌面，不留在项目 / 对话目录**，
-路径分别在 report 的 `desktop_copy` 与 `desktop_zip`；同名文件绝不覆盖（改存带时间戳的名字）。
-**把两个桌面路径都告诉用户**，让他自己选上传哪一份；能联网的 agent 直接上传 ZIP 即可。
+**调试阶段默认把产物生成到系统临时目录**（`tempfile.gettempdir()/stomp_output/`），不在桌面堆积；
+文件名自动带角色名（`--name`）与生成时间戳（如 `<名字>_custom_20261111_120000.png` 与同名 `.zip`），
+路径在 report 的 `out` 字段。（ZIP 根目录含图片与 `settings.json`，`images.giant` 自动指向
+ZIP 内图片名，`--name` 写入 `giant.name`，模板带评级与贴纸）。**只在最终交付时**加 `--deliver`，
+脚本才额外复制一份到桌面（report 的 `desktop_copy` / `desktop_zip`，带角色名 + 时间戳、不覆盖旧产物）；
+能联网的 agent 直接上传最终 ZIP 即可。
 
-- 用户**没指定**位置 → 保持默认，不加 `--out`，产物就在桌面。
-- 用户**明确要求放在别处**（且不要桌面副本）→ 传 `--out <路径> --no-desktop`。
-- 只要 PNG、不要 ZIP → 传 `--no-zip`（仍默认落桌面）。
+- 调试 / 中间产物 → 不加 `--deliver`，产物在临时目录，桌面保持干净。
+- 最终交付给用户留底 → 加 `--deliver`（或 `--out <桌面路径>`），复制一份到桌面。
+- 用户**明确要求放在别处** → 传 `--out <路径>`（不加 `--deliver` 就不会有桌面副本）。
+- 只要 PNG、不要 ZIP → 传 `--no-zip`。
 - 要改评级/贴纸/描述 → 复制 `assets/settings.template.json` 改好后传 `--settings my.json`；
   可设字段、合并/替换语义与禁止改的坐标见 `references/import.md`。
 - 想保留官方默认贴纸 → 传 `--keep-default-stickers`（默认模板的 `stickers: []` 会清空它们）。
 - 交付时**把本次 ZIP 实际改了哪些设定列给用户**，让他选 PNG / ZIP 时知道差异；
   `custom.report.json` 里 settings 校验产生的 WARN 也要一并说明。
-- 桌面找不到（沙箱 / 特殊重定向）→ 打印 WARN，用 `--desktop-dir <路径>` 或环境变量
-  `STOMP_DESKTOP_DIR` 指定；此时回退到当前目录并仍会尝试复制桌面。
+- 桌面找不到（沙箱 / 特殊重定向）→ 仅在 `--deliver` 时打印 WARN，用 `--desktop-dir <路径>` 或
+  环境变量 `STOMP_DESKTOP_DIR` 指定桌面目录。
 
 ### 4. 校验
 
@@ -149,7 +152,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 | `references/prompts.md` | 首版 9 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
 | `references/import.md` | ZIP 默认自动上传、桌面双产物、settings.json 全字段与禁令、验收清单、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
-| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP，默认落桌面且文件名自动带角色名/时间戳 |
+| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP；默认产物在临时目录，加 --deliver 才复制桌面 |
 | `scripts/validate.py` | 尺寸/装饰/去背/白板/贴底/实体腿/姿态/平静与击杀表情/帧间突变校验 |
 | `scripts/import_game.py` | Playwright 自动上传参考实现（默认上传 ZIP） |
 | `scripts/make_numbered_map.py` | 生成带编号的标注图（本地产出） |
@@ -175,7 +178,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
   只缩小 10–15%，`back:*` 会拦截。
 - **用户明确说用手时不得强制画脚**；仅提供手部参考图（模式 C）时仍不得把手掌当脚的解剖依据。
 - 首版生成 9 张必生格（含击杀 3 张）；并发失败时只回退串行，**不改动其余流程**。
-- 默认产物文件名已含角色名 + 时间戳，不会覆盖旧产物；用户明确指定保存位置（`--out <路径>`）时不额外复制桌面副本。
+- 调试产物默认落在系统临时目录（不在桌面堆积）；最终交付加 `--deliver` 才复制一份到桌面（文件名带角色名 + 时间戳，不覆盖旧产物）。
 - 有浏览器能力的 agent **默认上传 ZIP**，不默认上传 PNG。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。
 - 不把标注图、PNG 成品、ZIP 或任何含上游像素的文件提交进仓库。

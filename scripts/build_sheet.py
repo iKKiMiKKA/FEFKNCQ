@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import time
 import zipfile
 from pathlib import Path
@@ -238,9 +239,9 @@ def main():
     ap.add_argument("--manifest", help="JSON mapping of cell name -> image path")
     ap.add_argument("--base", required=True, help="official generic.png base")
     ap.add_argument("--out", default=None,
-                     help="output PNG path; defaults to the desktop so deliverables "
-                          "are easy to find and upload (use --no-desktop to keep them "
-                          "out of the desktop, or --out to choose another location)")
+                     help="output PNG path; defaults to the system temp dir so debug runs "
+                          "do not clutter the desktop. Use --deliver to also copy the final "
+                          "result to the desktop, or --out to choose a location.")
     ap.add_argument("--report", default=None)
     ap.add_argument("--bg", default="auto", choices=["auto", "none", "white", "green", "black", "magenta"])
     ap.add_argument("--tol", type=int, default=38, help="background color tolerance")
@@ -248,13 +249,11 @@ def main():
     ap.add_argument("--margin", type=int, default=2, help="transparent padding inside each cell")
     ap.add_argument("--missing", default="baseline", choices=["error", "baseline", "blank"],
                     help="what to do when a frame file is absent")
-    desktop = ap.add_mutually_exclusive_group()
-    desktop.add_argument("--desktop", dest="desktop", action="store_true",
-                         help="also copy the finished sheet to the desktop (default)")
-    desktop.add_argument("--no-desktop", dest="desktop", action="store_false",
-                         help="skip the desktop copy when the user chose an output location")
+    ap.add_argument("--deliver", action="store_true",
+                    help="also copy the finished PNG+ZIP to the desktop as the final "
+                         "deliverable (debug runs otherwise keep outputs in the temp dir)")
     ap.add_argument("--desktop-dir", default=None,
-                    help="override the detected desktop directory")
+                    help="override the detected desktop directory used by --deliver")
     zipgroup = ap.add_mutually_exclusive_group()
     zipgroup.add_argument("--zip", dest="make_zip", action="store_true",
                           help="also write an upload-ready ZIP (default)")
@@ -267,18 +266,16 @@ def main():
     ap.add_argument("--keep-default-stickers", action="store_true",
                     help="omit the stickers key so the game keeps its 61 default stickers "
                          "(default: empty list, which removes them)")
-    ap.set_defaults(desktop=True, make_zip=True)
+    ap.set_defaults(make_zip=True)
     args = ap.parse_args()
 
     if args.out is None:
-        ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
-        # Auto-name deliverables so re-runs never clobber a previous result:
-        # prefer the OC name (--name) plus a generation timestamp, and fall back
-        # to a bare timestamp when no name was given.
+        # Debug runs default to the system temp dir so the desktop stays clean;
+        # the final deliverable is copied to the desktop only with --deliver.
         stamp = time.strftime("%Y%m%d_%H%M%S")
         nb = safe_basename(args.name)
         base = ("%s_%s" % (nb, stamp)) if nb else ("custom_%s" % stamp)
-        args.out = str((ddir or Path.cwd()) / (base + ".png"))
+        args.out = str(Path(tempfile.gettempdir()) / "stomp_output" / (base + ".png"))
 
     mapping = resolve_frames(args.frames, args.manifest)
     bw, bh, base_rgba = png.read_png(args.base)
@@ -366,7 +363,7 @@ def main():
             report["warnings"].append("zip build failed: %s" % exc)
             zip_path = None
 
-    if args.desktop:
+    if args.deliver:
         ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
         if ddir is None or not ddir.is_dir():
             report["warnings"].append(

@@ -21,7 +21,7 @@
 agent 会：判定素材模式 → **首版生成 9 张必生图**（`front_0` / `front_3` / `front_5` /
 `back_0` / `normal_0` / `normal_1` / `excite_0` / `excite_1` /
 `endscreen`）→ 其余 17 格由脚本自动复用同组基准帧 → 合成 1024×1024 `custom.png` 与
-`custom.zip` → 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
+`custom.zip`（调试产物在临时目录，最终交付加 `--deliver` 才复制到桌面）→ 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
 ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
 **表情每列两档**：平静 `normal_0`（平静1）/`normal_1`（平静2），兴奋 `excite_0`/`excite_1`，
 后期复用第二档；`normal_1`/`excite_1` 先借用 F11/F12 的高档设计，后续再细化。
@@ -80,7 +80,7 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
 
-# 3. 合成 + 校验（默认直接把 PNG + ZIP 生成到桌面，文件名自动带角色名/时间戳，不覆盖旧产物）
+# 3. 合成 + 校验（默认产物在系统临时目录，最终交付加 --deliver 才复制到桌面，文件名带角色名/时间戳）
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "MY OC"
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
 #    产物默认落在桌面，文件名含角色名+时间戳；路径见 custom.report.json 的 desktop_copy / desktop_zip
@@ -143,10 +143,10 @@ assets/settings.template.json   ZIP 全定制模板
 - 编号是**图位顺序**，不是动画顺序：前爪为 `P01→P05→P09→P02→P06→P10`。
   `F09–F12`（高 ego）、`F13/F14`（疲惫）、`P08/P10`（高压）出现频率低，`X01–X03`
   默认永不采样——这是首版敢复用 17 格的依据，详见 `references/numbering.md`。
-- 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
-  其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
-  或 `--desktop-dir` 覆盖。默认文件名已含角色名 + 时间戳，不会与旧产物冲突；
-  绝不覆盖；两个路径分别记在 report 的 `desktop_copy` / `desktop_zip`。
+- 桌面副本仅在 `--deliver` 时由 `build_sheet.py` 用标准库探测：Windows 先问 shell API
+  （兼容 OneDrive 重定向），其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；
+  可用 `STOMP_DESKTOP_DIR` 或 `--desktop-dir` 覆盖。文件名含角色名 + 时间戳、不覆盖旧产物；
+  路径分别记在 report 的 `desktop_copy` / `desktop_zip`；调试阶段（无 `--deliver`）产物在临时目录。
 - **脚掌（手模式为手掌）必须贴格子底边**：游戏按爪格底边对齐 `paw_y`（碰撞只看 `paw_y`
   与 `floor_y=228`，不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，
   显示放大 2 倍后就是约 100px 的"悬空"，小人却已被判定踩死。`build_sheet.py` 会对爪格
