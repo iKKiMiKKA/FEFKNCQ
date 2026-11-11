@@ -37,27 +37,32 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 （见 `references/input-profiles.md`「鞋袜与手套」）。
 **只有手部参考图不等于手模式**；模式 D 下 11 个爪格全部画真正的手（或同款手套），坐标与流程不变。
 
-### 2. 生成首版（只 8 张，默认尝试并发）
+### 2. 生成首版（11 张，默认尝试并发）
 
-1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 8 张必生格拼提示词：
-   `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` / `normal_2` / `endscreen`。
-   **三张表情放在初期 ego 0/1/2，跨度要大且互不相同**（开局平静 → 明显愉悦 → 陶醉满足）；
-   后期 `normal_3/4/5` 复用 `normal_2`，用户提出再加图。
-   **四张爪格必查**：`front_0` 要露完整脚底（穿鞋/戴手套时露鞋底/手套掌面）、
-   腿是实体填充并延伸到顶边；`front_5` 比 `front_3`
-   更宽更扁；`back_0` 以 `front_0` 为参考图、同视角只缩小 10–15%，不得换成正面/俯视。
+1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 11 张必生格拼提示词：
+   `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` / `normal_2` /
+   `excite_0` / `excite_1` / `excite_2` / `endscreen`。
+   **初期 ego 0/1/2 的常态与击杀都要各自独立**：`normal_0/1/2` 跨度要大且互不相同
+   （开局平静 → 明显愉悦 → 陶醉满足）；`excite_0/1/2` 必须是同一张脸的兴奋版
+   （眼睛睁大、张嘴笑、脸红/汗滴），**不得照抄对应 `normal_*`**，否则初期击杀时表情无变化。
+   后期 `normal_3/4/5` 与 `excite_3/4/5` 复用 `normal_2`，用户提出再加图。
+   **四张爪格必查**：`front_0` 要露完整脚底/肉垫（穿鞋/戴手套时露鞋底/手套掌面）、
+   腿是实体填充并延伸到顶边；`front_3/5` **脚底朝下贴地、不露肉垫**，`front_5` 比 `front_3`
+   更宽更扁；`back_0` 以 `front_0` 为参考图、同视角只缩小 10–15%、踩地不露肉垫，
+   不得换成正面/俯视。
    **模式 D** 改用 `prompts.md` 的「手模式（D）专属描述替换」表，其余四条不变。
-2. **默认尝试并发**把这 8 张提交给生图通道，以缩短等待时间。
+2. **默认尝试并发**把这 11 张提交给生图通道，以缩短等待时间。
 3. **回退规则**：若通道不支持并发、报并发限制或并行结果串图，立即改为逐格串行；
    **其余流程一律不变**（不改合成、校验、导入步骤，不重新设计提示词，不新增分支）。
    **串行与补图时必须把同组已生成的基准帧作为参考图上传**（`front_3`←`front_0`、
-   `front_5`←`front_3`、`back_0`←`front_0`、`normal_1`←`normal_0`、`normal_2`←`normal_1`），
+   `front_5`←`front_3`、`back_0`←`front_0`、`normal_1`←`normal_0`、`normal_2`←`normal_1`、
+   `excite_0`←`normal_0`、`excite_1`←`normal_1`、`excite_2`←`normal_2`），
    完整对照见 `references/prompts.md` 第 2 节；并发提交没有可用基准帧，各帧共用 OC 参考图。
 4. 保存为 `frames/<cell>.png`；模型不支持透明时统一指定纯白/纯绿底，不要混用底色。
 5. 需要编号对照图时运行
    `python scripts/make_numbered_map.py --base generic.png --out numbered_map.png`（本地产出，不入库）。
 
-### 3. 合成（自动复用其余 18 格，产出 PNG + ZIP，默认直接落桌面）
+### 3. 合成（自动复用其余 15 格，产出 PNG + ZIP，默认直接落桌面）
 
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"
@@ -65,7 +70,7 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --na
 
 脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；
 已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
-`must_generate` 的 8 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
+`must_generate` 的 11 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
 **爪格贴底对齐（必做）**：`build_sheet.py` 对 `front_*` / `back_*` 先裁掉透明边再**底对齐**
 贴入，保证脚掌（手模式为手掌）最底部紧贴格子底边。游戏把爪格底边当作落脚点、
@@ -99,11 +104,12 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 逐项检查 `references/frame-semantics.md` 末尾的自检清单。任何 FAIL 必须修复：
 `cutout:*` / `plate:*`（未去背白块）、`continuity:*`（面积/质心突变）、`chrome:*`（UI 装饰被改）、
 `ground:*`（爪格底部留白）、`leg:*`（只有描边的空心腿）、
-`expression:early-ego`（初期三档表情重复）都会判 FAIL。
+`expression:early-ego`（初期常态三档重复）、`expression:kill-ego`（初期击杀帧等于常态帧）
+都会判 FAIL。
 `top:*`（腿没到顶边）、`pose:*`（三张必生爪帧几乎同姿态）、`pressure:*`（压扁反而变小）、
 `back:*`（前后爪不同源）、`expression:fast-pass`（后期复用损失）是 WARN：前四条要修到消失
 或向用户说明，**`expression:fast-pass` 是首版预期 WARN，必须在交付说明里主动告知用户
-「后期 ego 3–5 复用同一张脸、击杀无兴奋反馈」**。
+「后期 ego 3–5 复用同一张脸、后期击杀无兴奋反馈」**。
 程序只能发现几何与统计异常，不能判定解剖合理性，C1/C2/C5/C10 必须人工或 AI 目检。
 
 ### 5. 导入并开始游戏
@@ -119,11 +125,11 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 
 ### 6. 跑通后主动询问是否补细节
 
-一旦用户已经能玩，**必须主动提问**："首版只生成了 8 张图、其余 18 格复用基准帧，
+一旦用户已经能玩，**必须主动提问**："首版生成了 11 张图、其余 15 格复用基准帧，
 是否需要补画更多细节？" 并按 `references/prompts.md` 第 9 节的优先级给出候选，
-**首版初期 ego 0/1/2 已有三张独立表情**，所以优先推荐后期表情升级
-（`normal_3/4/5`）与击杀反馈（`excite_0/1/2`）；其后是抬爪中间帧、后爪压力帧、
-疲惫两帧、完整兴奋列。后期图目前是复用，用户提出再加即可。
+**首版初期 ego 0/1/2 的常态与击杀都已有独立表情**，所以优先推荐后期表情升级
+（`normal_3/4/5`）与后期击杀反馈（`excite_3/4/5`）；其后是抬爪中间帧、后爪压力帧、
+疲惫两帧。后期图目前是复用，用户提出再加即可。
 用户未确认前不要自行追加生成，避免增加等待时间。
 
 ### 7. 补细节 / 局部迭代
@@ -140,11 +146,11 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 | `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C11 约束、手模式、复用白名单、自检清单 |
 | `references/numbering.md` | 34 个格位的编号、出现时机与频率对照 |
 | `references/input-profiles.md` | A/B/C/D 四种素材模式、鞋袜/手套规则与降级 |
-| `references/prompts.md` | 首版 8 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
+| `references/prompts.md` | 首版 11 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
 | `references/import.md` | ZIP 默认自动上传、桌面双产物、settings.json 全字段与禁令、验收清单、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
-| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP、两份都复制桌面 |
-| `scripts/validate.py` | 尺寸/装饰/去背/白板/贴底/实体腿/姿态/初期表情/帧间突变校验 |
+| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP，默认直接落桌面 |
+| `scripts/validate.py` | 尺寸/装饰/去背/白板/贴底/实体腿/姿态/初期常态与击杀表情/帧间突变校验 |
 | `scripts/import_game.py` | Playwright 自动上传参考实现（默认上传 ZIP） |
 | `scripts/make_numbered_map.py` | 生成带编号的标注图（本地产出） |
 | `scripts/layout.py` / `scripts/png.py` | 坐标常量、必生/复用/编号表与零依赖 PNG 读写 |
@@ -163,10 +169,12 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 - 不画空心/只有描边的腿（C9）：腿与手臂必须实体填充并延伸到格顶，`leg:*` 判 FAIL。
 - 不把穿鞋/穿袜/戴手套的参考图改成光脚/裸手（C1）：11 格必须同款、不得脱掉或换款；
   "露脚底"改为露鞋底/手套掌面，趾数/掌纹只在裸露时才是固定项。
+- 不让肉垫/掌垫在贴地帧出现（C12）：`front_3/4/5` 与 `back_*` 脚底朝下贴地，
+  只能画脚背/脚侧/脚跟；肉垫只在抬起帧 `front_0/1/2` 可见。
 - 不把后爪画成另一个视角或另一只形状的脚（C5）：以 `front_0` 为参考图、同趾序、
   只缩小 10–15%，`back:*` 会拦截。
 - **用户明确说用手时不得强制画脚**；仅提供手部参考图（模式 C）时仍不得把手掌当脚的解剖依据。
-- 首版只生成 8 张必生格；并发失败时只回退串行，**不改动其余流程**。
+- 首版生成 11 张必生格（含初期击杀 3 张）；并发失败时只回退串行，**不改动其余流程**。
 - 不覆盖桌面已有的 `custom.png` / `custom.zip`；用户明确指定保存位置时不额外复制桌面副本。
 - 有浏览器能力的 agent **默认上传 ZIP**，不默认上传 PNG。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。

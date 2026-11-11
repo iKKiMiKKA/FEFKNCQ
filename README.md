@@ -18,12 +18,13 @@
 帮我用 github 上的 FEFKNCQ 制作我的 OC 角色并进行大脚踩踏游戏
 ```
 
-agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0` / `front_3` / `front_5` /
-`back_0` / `normal_0` / `normal_1` / `normal_2` / `endscreen`）→ 其余 18 格由脚本自动
-复用同组基准帧 → 合成 1024×1024 `custom.png` 与 `custom.zip` → 校验 →
-有浏览器能力就**默认上传 `custom.zip`** 并点击开始。ZIP 根目录的 `settings.json`
-带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
-**三张表情放在初期 ego 0/1/2**，开局就能看出表情变化；后期 3–5 先复用，用户提出再加图。
+agent 会：判定素材模式 → **首版生成 11 张必生图**（`front_0` / `front_3` / `front_5` /
+`back_0` / `normal_0` / `normal_1` / `normal_2` / `excite_0` / `excite_1` / `excite_2` /
+`endscreen`）→ 其余 15 格由脚本自动复用同组基准帧 → 合成 1024×1024 `custom.png` 与
+`custom.zip` → 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
+ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
+**初期 ego 0/1/2 有独立常态与兴奋两套表情**，开局和击杀都能看出表情变化；后期 3–5 先复用，
+用户提出再加图。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
@@ -55,10 +56,11 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 
 - **保证**：坐标、尺寸、透明度、UI 装饰像素、帧间无突变、导入即可用。
 - **能自动拦截**：脚底悬空、未去背白块、空心描边腿、必生爪帧姿态雷同、前后爪不同源、
-  初期三档表情重复、UI 装饰被改（`validate.py`）。
-- **不保证**：AI 画得像不像 OC、脚底解剖是否正确、是否真是同一只脚；这些仍需目检。
-  首版只生 8 张、其余 18 格复用：初期 ego 0/1/2 各有独立表情，代价是后期 3–5 复用
-  `normal_2`、击杀无兴奋反馈，属已知取舍，用户提出再加图。
+  初期常态三档表情重复、初期击杀帧等于常态帧、UI 装饰被改（`validate.py`）。
+- **不保证**：AI 画得像不像 OC、脚底解剖是否正确、肉垫有没有在贴地帧露出来、是否真是同一只脚；
+  这些仍需目检。
+  首版生成 11 张、其余 15 格复用：初期 ego 0/1/2 的常态与击杀各有独立表情，
+  代价是后期 3–5 复用 `normal_2`、后期击杀无兴奋反馈，属已知取舍，用户提出再加图。
 
 核心做法：不让图像模型一次画出整张精灵表，而是**逐格生成 + 脚本按坐标合成**，
 并把官方 `generic.png` 的 UI 装饰像素原样保留。
@@ -69,10 +71,11 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 # 1. 取官方底板（仓库不打包作者原图）
 curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 
-# 2. 首版只放 8 张图到 frames/（命名见 references/prompts.md）
+# 2. 首版放 11 张图到 frames/（命名见 references/prompts.md）
 #    front_0.png / front_3.png / front_5.png / back_0.png
-#    normal_0.png / normal_1.png / normal_2.png / endscreen.png
-#    其余 18 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
+#    normal_0.png / normal_1.png / normal_2.png / excite_0.png / excite_1.png / excite_2.png
+#    endscreen.png
+#    其余 15 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
 
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
@@ -107,7 +110,7 @@ references/layout.md            唯一坐标契约（1024×1024 全部切片）
 references/frame-semantics.md   26 格姿态/表情语义 + 防动作突变约束
 references/input-profiles.md    四种素材模式（含手模式）的容错与降级
 references/numbering.md         34 个格位编号、出现时机与频率
-references/prompts.md           首版 8 格提示词 + 复用映射 + 补细节优先级
+references/prompts.md           首版 11 格提示词 + 复用映射 + 补细节优先级
 references/import.md            自动导入、验收清单、故障排查
 references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
@@ -139,7 +142,7 @@ assets/settings.template.json   ZIP 全定制模板
 - 头像框、棋盘底、名字条、爪影点阵是 UI 装饰，必须原样保留；`validate.py` 逐像素比对。
 - 编号是**图位顺序**，不是动画顺序：前爪为 `P01→P05→P09→P02→P06→P10`。
   `F09–F12`（高 ego）、`F13/F14`（疲惫）、`P08/P10`（高压）出现频率低，`X01–X03`
-  默认永不采样——这是首版敢复用 18 格的依据，详见 `references/numbering.md`。
+  默认永不采样——这是首版敢复用 15 格的依据，详见 `references/numbering.md`。
 - 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
   其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
   或 `--desktop-dir` 覆盖。桌面已有同名 `custom.png` / `custom.zip` 时改存带时间戳的文件名，
@@ -150,11 +153,12 @@ assets/settings.template.json   ZIP 全定制模板
   自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
 - **腿必须实体填充**：只画两条轮廓线的"空心腿"在游戏里会看成透明腿；提示词要求柱状实体
   并延伸到格顶，`validate.py` 的 `leg:*` 判 FAIL、`top:*` 检查腿是否到顶边。
-- **初期表情必须明显变化**：ego 等级 = `floor(ego_climb/1000)`，玩家主要停在 0/1/2，
-  所以首版把三张独立表情放在 `normal_0/1/2`；`validate.py` 的 `expression:early-ego`
-  在三者重复时判 FAIL。后期 `normal_3/4/5` 先复用 `normal_2`，`excite_*` 与 `tired_0/1`
-  也复用，属已知损失（`expression:fast-pass` WARN）；跑通后等用户提出，再按
-  `references/prompts.md` 第 9 节补 `normal_3/4/5` / `excite_0/1/2`。
+- **初期状态表情必须明显变化**：ego 等级 = `floor(ego_climb/1000)`，玩家主要停在 0/1/2，
+  所以首版把**常态与击杀各三张**独立表情放在 `normal_0/1/2` 与 `excite_0/1/2`；
+  `validate.py` 的 `expression:early-ego`（常态三档重复）与 `expression:kill-ego`
+  （击杀帧等于常态帧）都会判 FAIL。后期 `normal_3/4/5`、`excite_3/4/5` 先复用 `normal_2`，
+  `tired_0/1` 也复用，属已知损失（`expression:fast-pass` WARN）；跑通后等用户提出，
+  再按 `references/prompts.md` 第 9 节补。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
   `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。

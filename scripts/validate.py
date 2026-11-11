@@ -225,11 +225,21 @@ def main():
     else:
         v.add("PASS", "expression:early-ego", "ego 0/1/2 are three distinct faces")
 
+    kill_pairs = (("normal_0", "excite_0"), ("normal_1", "excite_1"),
+                  ("normal_2", "excite_2"))
+    if any(identical(a, b) for a, b in kill_pairs):
+        v.add("FAIL", "expression:kill-ego",
+              "excite_0/1/2 must differ from normal_0/1/2; kills in ego 0/1/2 are the most "
+              "frequent, so reusing the normal face hides the kill reaction. Regenerate "
+              "excite_0/1/2 with an excited open-mouth / bright-eyed expression.")
+    else:
+        v.add("PASS", "expression:kill-ego", "ego 0/1/2 kill faces differ from normal")
+
     losses = []
     if all(identical("normal_%d" % i, "normal_2") for i in (3, 4, 5)):
         losses.append("ego 3-5 reuse normal_2 (no late-game expression steps)")
-    if all(identical("normal_%d" % i, "excite_%d" % i) for i in range(6)):
-        losses.append("excite column identical to normal (no kill feedback)")
+    if all(identical("excite_%d" % i, "normal_2") for i in (3, 4, 5)):
+        losses.append("excite 3-5 reuse normal_2 (no late-game kill feedback)")
     if identical("tired_0", "tired_1"):
         losses.append("tired frames have no blink difference")
     if losses:

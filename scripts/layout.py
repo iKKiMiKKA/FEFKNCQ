@@ -89,12 +89,13 @@ BG_KEYS = {
     "magenta": (255, 0, 255),
 }
 
-# Fast first pass: 8 generated frames. The three expression frames target ego
-# levels 0/1/2, where players spend most of a run, so the early game shows
-# clear expression changes. Levels 3-5 reuse normal_2 until the user asks for
-# more detail. Everything else is copied by build_sheet.py from the same group.
-# Adding a file named <cell>.png later automatically overrides its reuse entry,
-# so refining details never requires editing this table.
+# Fast first pass: 11 generated frames. Normal + excited portraits target ego
+# levels 0/1/2, where players spend most of a run, so both the normal run and
+# every early kill show a clear expression change. Levels 3-5 reuse normal_2 /
+# excite_2 until the user asks for more detail. Everything else is copied by
+# build_sheet.py from the same group. Adding a file named <cell>.png later
+# automatically overrides its reuse entry, so refining details never requires
+# editing this table.
 MUST_GENERATE = [
     "front_0",    # raised paw
     "front_3",    # touchdown
@@ -103,6 +104,9 @@ MUST_GENERATE = [
     "normal_0",   # ego 0: neutral
     "normal_1",   # ego 1: first visible change
     "normal_2",   # ego 2: highest first-pass tier, reused by 3-5
+    "excite_0",   # ego 0 kill: excited, distinct from normal_0
+    "excite_1",   # ego 1 kill: distinct from normal_1
+    "excite_2",   # ego 2 kill: distinct from normal_2
     "endscreen",  # banner
 ]
 
@@ -110,8 +114,7 @@ REUSE_MAP = {
     "front_1": "front_0", "front_2": "front_0", "front_4": "front_5",
     "back_1": "back_0", "back_2": "back_0", "back_3": "back_0", "back_4": "back_0",
     "normal_3": "normal_2", "normal_4": "normal_2", "normal_5": "normal_2",
-    "excite_0": "normal_0", "excite_1": "normal_1", "excite_2": "normal_2",
-    "excite_3": "normal_3", "excite_4": "normal_4", "excite_5": "normal_5",
+    "excite_3": "normal_2", "excite_4": "normal_2", "excite_5": "normal_2",
     "tired_0": "normal_0", "tired_1": "normal_0",
 }
 

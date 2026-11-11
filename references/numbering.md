@@ -56,7 +56,7 @@
 
 ⚠️ **首版的可见代价**：三张独立表情放在等级 0/1/2（F01/F03/F05），开局就能看到
 表情随 ego 变化；`normal_3/4/5`（F07/F09/F11）复用 `normal_2`，后期不再升级；
-`excite_*` 整列复用 `normal_*` → 击杀瞬间无兴奋反馈；`tired_0/1` 同图 → 疲惫无眨眼。
+`excite_3/4/5` 复用 `normal_2` → 后期击杀无兴奋反馈；`tired_0/1` 同图 → 疲惫无眨眼。
 `validate.py` 的 `expression:fast-pass` 会提示，用户提出后按 `references/prompts.md`
 第 9 节补图即可。
 
@@ -76,7 +76,8 @@
 ## 首版（C 档）必生与复用
 
 见 `scripts/layout.py` 的 `MUST_GENERATE` 与 `REUSE_MAP`。
-首版只生成 8 张：`P01(front_0)`、`P02(front_3)`、`P10(front_5)`、`P03(back_0)`、
-`F01(normal_0)`、`F03(normal_1)`、`F05(normal_2)`、`E01(endscreen)`；
-其余 18 格由 `build_sheet.py` 自动复制同组基准帧。
+首版生成 11 张：`P01(front_0)`、`P02(front_3)`、`P10(front_5)`、`P03(back_0)`、
+`F01(normal_0)`、`F03(normal_1)`、`F05(normal_2)`、`F02(excite_0)`、`F04(excite_1)`、
+`F06(excite_2)`、`E01(endscreen)`；
+其余 15 格由 `build_sheet.py` 自动复制同组基准帧。
 **补细节不需要改配置**：把 `<帧名>.png` 放进 `frames/` 重新合成即可自动覆盖复用。
