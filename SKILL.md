@@ -37,32 +37,32 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 （见 `references/input-profiles.md`「鞋袜与手套」）。
 **只有手部参考图不等于手模式**；模式 D 下 11 个爪格全部画真正的手（或同款手套），坐标与流程不变。
 
-### 2. 生成首版（11 张，默认尝试并发）
+### 2. 生成首版（9 张，默认尝试并发）
 
-1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 11 张必生格拼提示词：
-   `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` / `normal_2` /
+1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 9 张必生格拼提示词：
+   `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` /
    `excite_0` / `excite_1` / `excite_2` / `endscreen`。
-   **初期 ego 0/1/2 的常态与击杀都要各自独立**：`normal_0/1/2` 跨度要大且互不相同
-   （开局平静 → 明显愉悦 → 陶醉满足）；`excite_0/1/2` 必须是同一张脸的兴奋版
-   （眼睛睁大、张嘴笑、脸红/汗滴），**不得照抄对应 `normal_*`**，否则初期击杀时表情无变化。
-   后期 `normal_3/4/5` 与 `excite_3/4/5` 复用 `normal_2`，用户提出再加图。
+   **无击杀时（`normal` 列）复用一张平静脸 `normal_0`**，头像不随 ego 升级；
+   **`excite_0/1/2` 是击杀兴奋脸，三档必须明显不同**（眼睛睁大、张嘴笑、脸红/汗滴），
+   **且不得照抄 `normal_0`**，否则踩死小人时头像无反应。后期 `normal_1..5` 复用 `normal_0`、
+   `excite_3/4/5` 复用 `excite_2`，用户提出再加图。
    **四张爪格必查**：`front_0` 要露完整脚底/肉垫（穿鞋/戴手套时露鞋底/手套掌面）、
    腿是实体填充并延伸到顶边；`front_3/5` **脚底朝下贴地、不露肉垫**，`front_5` 比 `front_3`
    更宽更扁；`back_0` 以 `front_0` 为参考图、同视角只缩小 10–15%、踩地不露肉垫，
    不得换成正面/俯视。
    **模式 D** 改用 `prompts.md` 的「手模式（D）专属描述替换」表，其余四条不变。
-2. **默认尝试并发**把这 11 张提交给生图通道，以缩短等待时间。
+2. **默认尝试并发**把这 9 张提交给生图通道，以缩短等待时间。
 3. **回退规则**：若通道不支持并发、报并发限制或并行结果串图，立即改为逐格串行；
    **其余流程一律不变**（不改合成、校验、导入步骤，不重新设计提示词，不新增分支）。
    **串行与补图时必须把同组已生成的基准帧作为参考图上传**（`front_3`←`front_0`、
-   `front_5`←`front_3`、`back_0`←`front_0`、`normal_1`←`normal_0`、`normal_2`←`normal_1`、
-   `excite_0`←`normal_0`、`excite_1`←`normal_1`、`excite_2`←`normal_2`），
+   `front_5`←`front_3`、`back_0`←`front_0`、`excite_0`←`normal_0`、`excite_1`←`normal_0`、
+   `excite_2`←`normal_0`），
    完整对照见 `references/prompts.md` 第 2 节；并发提交没有可用基准帧，各帧共用 OC 参考图。
 4. 保存为 `frames/<cell>.png`；模型不支持透明时统一指定纯白/纯绿底，不要混用底色。
 5. 需要编号对照图时运行
    `python scripts/make_numbered_map.py --base generic.png --out numbered_map.png`（本地产出，不入库）。
 
-### 3. 合成（自动复用其余 15 格，产出 PNG + ZIP，默认直接落桌面）
+### 3. 合成（自动复用其余 17 格，产出 PNG + ZIP，默认落桌面且文件名带角色名/时间戳）
 
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"
@@ -70,7 +70,7 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --na
 
 脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；
 已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
-`must_generate` 的 11 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
+`must_generate` 的 9 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
 **爪格贴底对齐（必做）**：`build_sheet.py` 对 `front_*` / `back_*` 先裁掉透明边再**底对齐**
 贴入，保证脚掌（手模式为手掌）最底部紧贴格子底边。游戏把爪格底边当作落脚点、
@@ -78,7 +78,7 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --na
 表情格与结算横幅仍居中。若用户只拿来一张已生成的旧 `custom.png`，按
 `scripts/layout.py:CELLS` 切出各格再重新合成即可修正，**不需要重新生图**。
 
-**默认直接把两件产物生成到桌面**：不加任何参数时，`custom.png` 与 `custom.zip`
+**默认直接把两件产物生成到桌面**：不加 `--out` 时，文件名自动带角色名（`--name`）与生成时间戳（如 `<名字>_custom_20261111_120000.png` 与同名 `.zip`），**绝不覆盖旧产物**；
 （ZIP 根目录含图片与 `settings.json`，`images.giant` 自动指向 ZIP 内图片名，
 `--name` 写入 `giant.name`，模板带评级与贴纸）**直接写到桌面，不留在项目 / 对话目录**，
 路径分别在 report 的 `desktop_copy` 与 `desktop_zip`；同名文件绝不覆盖（改存带时间戳的名字）。
@@ -104,12 +104,12 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 逐项检查 `references/frame-semantics.md` 末尾的自检清单。任何 FAIL 必须修复：
 `cutout:*` / `plate:*`（未去背白块）、`continuity:*`（面积/质心突变）、`chrome:*`（UI 装饰被改）、
 `ground:*`（爪格底部留白）、`leg:*`（只有描边的空心腿）、
-`expression:early-ego`（初期常态三档重复）、`expression:kill-ego`（初期击杀帧等于常态帧）
-都会判 FAIL。
+`expression:kill-ego`（击杀帧等于平静脸）都会判 FAIL。
 `top:*`（腿没到顶边）、`pose:*`（三张必生爪帧几乎同姿态）、`pressure:*`（压扁反而变小）、
-`back:*`（前后爪不同源）、`expression:fast-pass`（后期复用损失）是 WARN：前四条要修到消失
-或向用户说明，**`expression:fast-pass` 是首版预期 WARN，必须在交付说明里主动告知用户
-「后期 ego 3–5 复用同一张脸、后期击杀无兴奋反馈」**。
+`back:*`（前后爪不同源）、`expression:normal-reuse`（normal 三档相同，属默认设计）、
+`expression:fast-pass`（后期复用损失）是 WARN：前四条要修到消失或向用户说明；
+**`expression:normal-reuse` 与 `expression:fast-pass` 是首版预期 WARN，交付说明里主动告知
+「无击杀时头像始终平静、后期击杀复用最高档」**。
 程序只能发现几何与统计异常，不能判定解剖合理性，C1/C2/C5/C10 必须人工或 AI 目检。
 
 ### 5. 导入并开始游戏
@@ -125,11 +125,11 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 
 ### 6. 跑通后主动询问是否补细节
 
-一旦用户已经能玩，**必须主动提问**："首版生成了 11 张图、其余 15 格复用基准帧，
-是否需要补画更多细节？" 并按 `references/prompts.md` 第 9 节的优先级给出候选，
-**首版初期 ego 0/1/2 的常态与击杀都已有独立表情**，所以优先推荐后期表情升级
-（`normal_3/4/5`）与后期击杀反馈（`excite_3/4/5`）；其后是抬爪中间帧、后爪压力帧、
-疲惫两帧。后期图目前是复用，用户提出再加即可。
+一旦用户已经能玩，**必须主动提问**："首版生成了 9 张图、其余 17 格复用基准帧，
+是否需要补画更多细节？" 并按 `references/prompts.md` 第 9 节的优先级给出候选：
+**无击杀时头像目前复用同一张平静脸**，优先推荐补 `normal_1/2` 让 ego 升级也有表情；
+其次是后期击杀逐档升级（`excite_3/4/5`）、抬爪中间帧、后爪压力帧、疲惫两帧。
+用户提出再加即可。
 用户未确认前不要自行追加生成，避免增加等待时间。
 
 ### 7. 补细节 / 局部迭代
@@ -146,10 +146,10 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 | `references/frame-semantics.md` | 26 格姿态/表情语义、C1–C11 约束、手模式、复用白名单、自检清单 |
 | `references/numbering.md` | 34 个格位的编号、出现时机与频率对照 |
 | `references/input-profiles.md` | A/B/C/D 四种素材模式、鞋袜/手套规则与降级 |
-| `references/prompts.md` | 首版 11 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
+| `references/prompts.md` | 首版 9 格提示词、手模式词替换、复用映射、并发/回退、补细节优先级 |
 | `references/import.md` | ZIP 默认自动上传、桌面双产物、settings.json 全字段与禁令、验收清单、故障排查 |
 | `references/upstream.md` | 底板来源、SHA256、合规、版本漂移处理 |
-| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP，默认直接落桌面 |
+| `scripts/build_sheet.py` | 合成、复用未生成格、生成 PNG+ZIP，默认落桌面且文件名自动带角色名/时间戳 |
 | `scripts/validate.py` | 尺寸/装饰/去背/白板/贴底/实体腿/姿态/初期常态与击杀表情/帧间突变校验 |
 | `scripts/import_game.py` | Playwright 自动上传参考实现（默认上传 ZIP） |
 | `scripts/make_numbered_map.py` | 生成带编号的标注图（本地产出） |
@@ -174,8 +174,8 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 - 不把后爪画成另一个视角或另一只形状的脚（C5）：以 `front_0` 为参考图、同趾序、
   只缩小 10–15%，`back:*` 会拦截。
 - **用户明确说用手时不得强制画脚**；仅提供手部参考图（模式 C）时仍不得把手掌当脚的解剖依据。
-- 首版生成 11 张必生格（含初期击杀 3 张）；并发失败时只回退串行，**不改动其余流程**。
-- 不覆盖桌面已有的 `custom.png` / `custom.zip`；用户明确指定保存位置时不额外复制桌面副本。
+- 首版生成 9 张必生格（含击杀 3 张）；并发失败时只回退串行，**不改动其余流程**。
+- 默认产物文件名已含角色名 + 时间戳，不会覆盖旧产物；用户明确指定保存位置（`--out <路径>`）时不额外复制桌面副本。
 - 有浏览器能力的 agent **默认上传 ZIP**，不默认上传 PNG。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。
 - 不把标注图、PNG 成品、ZIP 或任何含上游像素的文件提交进仓库。

@@ -54,11 +54,11 @@
 `ego_val ≥ 5999` 触发 `finished`，约 1 秒后进结算并隐藏头像 HUD。
 因此 F09–F12 只出现在长时间干净通关的后段，F13/F14 属于失误状态，X02/X03 默认永不出现。
 
-⚠️ **首版的可见代价**：三张独立表情放在等级 0/1/2（F01/F03/F05），开局就能看到
-表情随 ego 变化；`normal_3/4/5`（F07/F09/F11）复用 `normal_2`，后期不再升级；
-`excite_3/4/5` 复用 `normal_2` → 后期击杀无兴奋反馈；`tired_0/1` 同图 → 疲惫无眨眼。
-`validate.py` 的 `expression:fast-pass` 会提示，用户提出后按 `references/prompts.md`
-第 9 节补图即可。
+⚠️ **首版的表情策略**：无击杀时（`normal` 列 F01/F03/F05/F07/F09/F11）复用同一张平静脸
+`normal_0`，头像不随 ego 升级；击杀（`excite` 列）在 ego 0/1/2（F02/F04/F06）三档独立、
+明显变化，`excite_3/4/5`（F08/F10/F12）复用 `excite_2` 最高档，后期击杀仍有反馈；
+`tired_0/1` 同图 → 疲惫无眨眼。想让 normal 也随 ego 升级，按 `references/prompts.md`
+第 9 节补 `normal_1/2` 即可。
 
 ## 其余格位
 
@@ -76,8 +76,7 @@
 ## 首版（C 档）必生与复用
 
 见 `scripts/layout.py` 的 `MUST_GENERATE` 与 `REUSE_MAP`。
-首版生成 11 张：`P01(front_0)`、`P02(front_3)`、`P10(front_5)`、`P03(back_0)`、
-`F01(normal_0)`、`F03(normal_1)`、`F05(normal_2)`、`F02(excite_0)`、`F04(excite_1)`、
-`F06(excite_2)`、`E01(endscreen)`；
-其余 15 格由 `build_sheet.py` 自动复制同组基准帧。
+首版生成 9 张：`P01(front_0)`、`P02(front_3)`、`P10(front_5)`、`P03(back_0)`、
+`F01(normal_0)`、`F02(excite_0)`、`F04(excite_1)`、`F06(excite_2)`、`E01(endscreen)`；
+其余 17 格由 `build_sheet.py` 自动复制同组基准帧。
 **补细节不需要改配置**：把 `<帧名>.png` 放进 `frames/` 重新合成即可自动覆盖复用。

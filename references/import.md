@@ -48,7 +48,7 @@ agent 没有浏览器能力、或用户只想自己上传时走这条路。
 
 - **上传 ZIP（默认）**：`settings.json` 生效，`giant.name` 为设定名字，`giant.description`、
   `congrats`、`grades`（评级）、`stickers` 按模板/自定义值加载；结算页会显示评级。
-- **上传 PNG**：`giant.name = 文件名去 .png`（`custom.png` → `CUSTOM`），
+- **上传 PNG**：游戏用文件名去 `.png` 当名字（自动命名后会带时间戳/角色名，故**角色名以 ZIP 内 `settings.json` 为准**，优先上传 ZIP），
   `giant.description = ""`，`giant.grades = false`（评级关闭，结算横幅只画单层、无评级抖动残影）；
   **贴纸保持游戏默认**（只有贴纸编辑器模式 `?stickers=true` 才清空）。反之默认 ZIP 模板的
   `"stickers": []` 是整体替换，会清空默认贴纸——这是两种上传方式的观感差异之一。

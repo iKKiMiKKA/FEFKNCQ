@@ -18,20 +18,20 @@
 帮我用 github 上的 FEFKNCQ 制作我的 OC 角色并进行大脚踩踏游戏
 ```
 
-agent 会：判定素材模式 → **首版生成 11 张必生图**（`front_0` / `front_3` / `front_5` /
-`back_0` / `normal_0` / `normal_1` / `normal_2` / `excite_0` / `excite_1` / `excite_2` /
-`endscreen`）→ 其余 15 格由脚本自动复用同组基准帧 → 合成 1024×1024 `custom.png` 与
+agent 会：判定素材模式 → **首版生成 9 张必生图**（`front_0` / `front_3` / `front_5` /
+`back_0` / `normal_0` / `excite_0` / `excite_1` / `excite_2` /
+`endscreen`）→ 其余 17 格由脚本自动复用同组基准帧 → 合成 1024×1024 `custom.png` 与
 `custom.zip` → 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
 ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
-**初期 ego 0/1/2 有独立常态与兴奋两套表情**，开局和击杀都能看出表情变化；后期 3–5 先复用，
+**无击杀时头像复用同一张平静脸；击杀（`excite_0/1/2`）三档各有明显不同的兴奋表情**，后期先复用最高档，
 用户提出再加图。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
 11 个爪格会全部生成真正的手；只发来一张手部参考图不算，仍按脚生成。
 
-**如果你没有指定图片放在哪里**，脚本会**把 `custom.png` 与 `custom.zip` 直接生成到桌面**
-（不留在项目目录；同名文件不会被覆盖，改用带时间戳的名字），agent 会把两个桌面路径都告诉
+**如果你没有指定图片放在哪里**，脚本会**把产物直接生成到桌面**，文件名自动带上角色名（`--name`）与生成时间戳（如 `<名字>_custom_20261111_120000.png` / `.zip`），**绝不覆盖旧产物**；
+（不留在项目目录；文件名已含角色名 + 时间戳，不会与旧产物冲突），agent 会把两个桌面路径都告诉
 你，想自己上传哪一份都行。若你明确要求放到别处且不要桌面副本，agent 会改用 `--out <路径> --no-desktop`。
 
 **跑通能玩后 agent 会主动询问是否补画更多细节**（后期表情升级、击杀兴奋反馈、
@@ -59,8 +59,8 @@ ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上�
   初期常态三档表情重复、初期击杀帧等于常态帧、UI 装饰被改（`validate.py`）。
 - **不保证**：AI 画得像不像 OC、脚底解剖是否正确、肉垫有没有在贴地帧露出来、是否真是同一只脚；
   这些仍需目检。
-  首版生成 11 张、其余 15 格复用：初期 ego 0/1/2 的常态与击杀各有独立表情，
-  代价是后期 3–5 复用 `normal_2`、后期击杀无兴奋反馈，属已知取舍，用户提出再加图。
+  首版生成 9 张、其余 17 格复用：无击杀时头像复用同一张平静脸，击杀三档各有独立兴奋表情，
+  代价是 normal 不随 ego 升级、后期击杀复用最高档，属已知取舍，用户提出再加图。
 
 核心做法：不让图像模型一次画出整张精灵表，而是**逐格生成 + 脚本按坐标合成**，
 并把官方 `generic.png` 的 UI 装饰像素原样保留。
@@ -71,19 +71,19 @@ ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上�
 # 1. 取官方底板（仓库不打包作者原图）
 curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 
-# 2. 首版放 11 张图到 frames/（命名见 references/prompts.md）
+# 2. 首版放 9 张图到 frames/（命名见 references/prompts.md）
 #    front_0.png / front_3.png / front_5.png / back_0.png
-#    normal_0.png / normal_1.png / normal_2.png / excite_0.png / excite_1.png / excite_2.png
+#    normal_0.png / excite_0.png / excite_1.png / excite_2.png
 #    endscreen.png
-#    其余 15 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
+#    其余 17 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
 
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
 python scripts/make_numbered_map.py --base generic.png --out numbered_map.png
 
-# 3. 合成 + 校验（默认直接把 PNG + ZIP 生成到桌面，不留在项目目录）
+# 3. 合成 + 校验（默认直接把 PNG + ZIP 生成到桌面，文件名自动带角色名/时间戳，不覆盖旧产物）
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "MY OC"
 python scripts/validate.py --sheet custom.png --base generic.png --report custom.report.json
-#    custom.png / custom.zip 默认落在桌面；桌面路径见 custom.report.json 的 desktop_copy / desktop_zip
+#    产物默认落在桌面，文件名含角色名+时间戳；路径见 custom.report.json 的 desktop_copy / desktop_zip
 
 # 3b. 已指定保存位置、不想要桌面副本时
 python scripts/build_sheet.py --frames frames/ --base generic.png --out D:/pic/my.png --no-desktop
@@ -110,13 +110,13 @@ references/layout.md            唯一坐标契约（1024×1024 全部切片）
 references/frame-semantics.md   26 格姿态/表情语义 + 防动作突变约束
 references/input-profiles.md    四种素材模式（含手模式）的容错与降级
 references/numbering.md         34 个格位编号、出现时机与频率
-references/prompts.md           首版 11 格提示词 + 复用映射 + 补细节优先级
+references/prompts.md           首版 9 格提示词 + 复用映射 + 补细节优先级
 references/import.md            自动导入、验收清单、故障排查
 references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
 scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP，默认直接落桌面
-scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/初期表情/帧间突变）
+scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/击杀表情/帧间突变）
 scripts/import_game.py          Playwright 自动上传参考实现（默认上传 ZIP）
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）
 assets/settings.template.json   ZIP 全定制模板
@@ -142,10 +142,10 @@ assets/settings.template.json   ZIP 全定制模板
 - 头像框、棋盘底、名字条、爪影点阵是 UI 装饰，必须原样保留；`validate.py` 逐像素比对。
 - 编号是**图位顺序**，不是动画顺序：前爪为 `P01→P05→P09→P02→P06→P10`。
   `F09–F12`（高 ego）、`F13/F14`（疲惫）、`P08/P10`（高压）出现频率低，`X01–X03`
-  默认永不采样——这是首版敢复用 15 格的依据，详见 `references/numbering.md`。
+  默认永不采样——这是首版敢复用 17 格的依据，详见 `references/numbering.md`。
 - 桌面副本由 `build_sheet.py` 用标准库探测：Windows 先问 shell API（兼容 OneDrive 重定向），
   其余平台依次尝试 `~/Desktop`、`~/桌面`、`~/OneDrive*/Desktop`；可用 `STOMP_DESKTOP_DIR`
-  或 `--desktop-dir` 覆盖。桌面已有同名 `custom.png` / `custom.zip` 时改存带时间戳的文件名，
+  或 `--desktop-dir` 覆盖。默认文件名已含角色名 + 时间戳，不会与旧产物冲突；
   绝不覆盖；两个路径分别记在 report 的 `desktop_copy` / `desktop_zip`。
 - **脚掌（手模式为手掌）必须贴格子底边**：游戏按爪格底边对齐 `paw_y`（碰撞只看 `paw_y`
   与 `floor_y=228`，不读图片内容），官方底板触地帧脚底留白为 0px。若脚底离格底约 50px，
@@ -153,12 +153,13 @@ assets/settings.template.json   ZIP 全定制模板
   自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
 - **腿必须实体填充**：只画两条轮廓线的"空心腿"在游戏里会看成透明腿；提示词要求柱状实体
   并延伸到格顶，`validate.py` 的 `leg:*` 判 FAIL、`top:*` 检查腿是否到顶边。
-- **初期状态表情必须明显变化**：ego 等级 = `floor(ego_climb/1000)`，玩家主要停在 0/1/2，
-  所以首版把**常态与击杀各三张**独立表情放在 `normal_0/1/2` 与 `excite_0/1/2`；
-  `validate.py` 的 `expression:early-ego`（常态三档重复）与 `expression:kill-ego`
-  （击杀帧等于常态帧）都会判 FAIL。后期 `normal_3/4/5`、`excite_3/4/5` 先复用 `normal_2`，
-  `tired_0/1` 也复用，属已知损失（`expression:fast-pass` WARN）；跑通后等用户提出，
-  再按 `references/prompts.md` 第 9 节补。
+- **表情走两条线**：ego 等级 = `floor(ego_climb/1000)`，`normal` 列是"无击杀时"按等级显示，
+  `excite` 列只在**击杀得分后约 0.5 秒**闪现。所以首版把 `normal` 列统一复用平静脸
+  `normal_0`（头像不随 ego 升级），把击杀的三档兴奋脸放在 `excite_0/1/2`；
+  `validate.py` 的 `expression:normal-reuse`（normal 三档相同）是预期 WARN，
+  `expression:kill-ego`（击杀帧等于平静脸）判 FAIL。后期 `normal_1..5` 复用 `normal_0`、
+  `excite_3/4/5` 复用 `excite_2`，`tired_0/1` 也复用，属已知损失
+  （`expression:fast-pass` WARN）；跑通后等用户提出，再按 `references/prompts.md` 第 9 节补。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
   `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。

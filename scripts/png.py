@@ -294,16 +294,24 @@ def resize(rgba, sw, sh, tw, th):
     return out
 
 
-def fit(rgba, sw, sh, tw, th, margin=0, anchor="center"):
+def fit(rgba, sw, sh, tw, th, margin=0, anchor="center", max_scale=None):
     """Fit into a (tw, th) transparent canvas, preserving aspect ratio.
 
     anchor="bottom" puts the subject's bottom edge on the cell's bottom edge.
     The game aligns paws by that edge (see references/layout.md), so a centered
     paw would look like it never reaches the ground.
+
+    max_scale caps the upscale factor (default None = no cap). The back-paw
+    cells must stay smaller than the front paw as a far/background foot (C5),
+    so they are fit with max_scale=1: a smaller source is kept small instead of
+    being blown up to fill the cell, which would erase the 10-15% far-foot
+    shrink the artist drew.
     """
     avail_w = max(1, tw - 2 * margin)
     avail_h = max(1, th - 2 * margin)
     scale = min(avail_w / float(sw), avail_h / float(sh))
+    if max_scale is not None:
+        scale = min(scale, max_scale)
     nw = max(1, int(round(sw * scale)))
     nh = max(1, int(round(sh * scale)))
     small = resize(rgba, sw, sh, nw, nh)

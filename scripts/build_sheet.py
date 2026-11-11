@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -65,6 +66,17 @@ def desktop_dir():
         if p.is_dir():
             return p
     return None
+
+
+def safe_basename(name):
+    """Turn an OC name into a filesystem-safe deliverable prefix."""
+    if not name:
+        return None
+    s = re.sub(r'[\\/:*?"<>|]', "", str(name)).strip()
+    s = s.replace(" ", "_")
+    if not s:
+        return None
+    return s[:60] + "_custom"
 
 
 def copy_to_desktop(src, target, basename, ext):
@@ -168,7 +180,7 @@ def resolve_frames(frames_dir, manifest):
     return mapping
 
 
-def prepare_cell(path, w, h, bg, tol, flood, margin, grounded=False):
+def prepare_cell(path, w, h, bg, tol, flood, margin, grounded=False, max_scale=None):
     sw, sh, rgba = png.read_png(path)
     if bg != "none":
         key = BG_KEYS.get(bg) if bg != "auto" else None
@@ -179,7 +191,7 @@ def prepare_cell(path, w, h, bg, tol, flood, margin, grounded=False):
         # then bottom-align. Portraits and the banner stay centered.
         sw, sh, rgba = png.trim(rgba, sw, sh)
     return png.fit(rgba, sw, sh, w, h, margin=margin,
-                   anchor="bottom" if grounded else "center")
+                   anchor="bottom" if grounded else "center", max_scale=max_scale)
 
 
 def group_baseline(name, mapping):
@@ -260,7 +272,13 @@ def main():
 
     if args.out is None:
         ddir = Path(args.desktop_dir).expanduser() if args.desktop_dir else desktop_dir()
-        args.out = str((ddir or Path.cwd()) / "custom.png")
+        # Auto-name deliverables so re-runs never clobber a previous result:
+        # prefer the OC name (--name) plus a generation timestamp, and fall back
+        # to a bare timestamp when no name was given.
+        stamp = time.strftime("%Y%m%d_%H%M%S")
+        nb = safe_basename(args.name)
+        base = ("%s_%s" % (nb, stamp)) if nb else ("custom_%s" % stamp)
+        args.out = str((ddir or Path.cwd()) / (base + ".png"))
 
     mapping = resolve_frames(args.frames, args.manifest)
     bw, bh, base_rgba = png.read_png(args.base)
@@ -309,9 +327,14 @@ def main():
         if status is None:
             status = ("reused:%s" % root) if reused else "generated"
         grounded = name.startswith("front_") or name.startswith("back_")
+        # The back paw is a far/background foot (C5): keep it smaller than the
+        # front paw by never upscaling its source (max_scale=1). Without this the
+        # contain fit would blow a smaller back-foot drawing back up to cell
+        # size and erase the 10-15% far-foot shrink.
+        max_scale = 1.0 if name.startswith("back_") else None
         try:
             cell = prepare_cell(used, w, h, args.bg, args.tol, not args.no_flood,
-                                args.margin, grounded=grounded)
+                                args.margin, grounded=grounded, max_scale=max_scale)
         except Exception as exc:
             report["errors"].append("cannot read %s (%s): %s" % (name, used, exc))
             report["cells"][name] = {"rect": [x, y, w, h], "status": "error", "source": used}
@@ -354,9 +377,9 @@ def main():
             report["desktop_zip"] = None
         else:
             try:
-                report["desktop_copy"] = str(copy_to_desktop(out, ddir, "custom", ".png"))
+                report["desktop_copy"] = str(copy_to_desktop(out, ddir, out.stem, ".png"))
                 if zip_path:
-                    report["desktop_zip"] = str(copy_to_desktop(zip_path, ddir, "custom", ".zip"))
+                    report["desktop_zip"] = str(copy_to_desktop(zip_path, ddir, zip_path.stem, ".zip"))
             except Exception as exc:
                 report["warnings"].append("desktop copy failed: %s" % exc)
 

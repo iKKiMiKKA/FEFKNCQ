@@ -219,9 +219,10 @@ def main():
     early_pairs = (("normal_0", "normal_1"), ("normal_1", "normal_2"),
                    ("normal_0", "normal_2"))
     if any(identical(a, b) for a, b in early_pairs):
-        v.add("FAIL", "expression:early-ego",
-              "ego 0/1/2 must be three distinct faces (players stay in this range longest); "
-              "regenerate normal_0/1/2 with clearly different expressions")
+        v.add("WARN", "expression:normal-reuse",
+              "normal_0/1/2 are the same face: this is the normal-reuse mode (the HUD stays "
+              "calm until a kill, then the excite column flashes). This is the default "
+              "design; generate normal_1/2 only if you want ego-level expression steps.")
     else:
         v.add("PASS", "expression:early-ego", "ego 0/1/2 are three distinct faces")
 
