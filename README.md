@@ -19,10 +19,11 @@
 ```
 
 agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0` / `front_3` / `front_5` /
-`back_0` / `normal_1` / `normal_3` / `normal_5` / `endscreen`）→ 其余 18 格由脚本自动
+`back_0` / `normal_0` / `normal_1` / `normal_2` / `endscreen`）→ 其余 18 格由脚本自动
 复用同组基准帧 → 合成 1024×1024 `custom.png` 与 `custom.zip` → 校验 →
 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。ZIP 根目录的 `settings.json`
 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
+**三张表情放在初期 ego 0/1/2**，开局就能看出表情变化；后期 3–5 先复用，用户提出再加图。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
@@ -33,7 +34,8 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 都告诉你，想自己上传哪一份都行。若你指定了保存位置，agent 会改用 `--no-desktop`，
 不再额外复制。
 
-**跑通能玩后 agent 会主动询问是否补画更多细节**（兴奋表情、疲惫两帧、抬爪中间帧等），
+**跑通能玩后 agent 会主动询问是否补画更多细节**（后期表情升级、击杀兴奋反馈、
+疲惫两帧、抬爪中间帧等），
 用户确认前不会自行加图。补细节只需往 `frames/` 多放几张 `<帧名>.png` 重新合成，
 单格文件会自动覆盖该格的复用，无需改配置。之后也可以直接说
 "第 3 个表情再凶一点"之类的调整，agent 只重画对应格子。
@@ -47,13 +49,17 @@ agent 会：判定素材模式 → **首版只生成 8 张必生图**（`front_0
 | 头像 + 一张手的图（未说用手） | 手部图只借用线条/配色/饰物风格，脚的结构按官方示例推导 |
 | 明确说"用手 / 手掌 / 手拍 / 不要脚" | 手模式：11 个爪格全部画真正的手，坐标与交付流程不变 |
 
+> 参考图若穿鞋、穿袜或戴手套，一律**按鞋和手套画**，不会擅自改成光脚/裸手：
+> 11 个爪格保持同款、不脱不换款，`front_0` 的"露脚底"改为露鞋底/手套掌面。
+
 ## 这个 skill 保证什么
 
 - **保证**：坐标、尺寸、透明度、UI 装饰像素、帧间无突变、导入即可用。
 - **能自动拦截**：脚底悬空、未去背白块、空心描边腿、必生爪帧姿态雷同、前后爪不同源、
-  UI 装饰被改（`validate.py`）。
+  初期三档表情重复、UI 装饰被改（`validate.py`）。
 - **不保证**：AI 画得像不像 OC、脚底解剖是否正确、是否真是同一只脚；这些仍需目检。
-  首版只生 8 张、其余 18 格复用，会让初期 ego 0–2 表情相同、击杀无兴奋反馈，属已知取舍。
+  首版只生 8 张、其余 18 格复用：初期 ego 0/1/2 各有独立表情，代价是后期 3–5 复用
+  `normal_2`、击杀无兴奋反馈，属已知取舍，用户提出再加图。
 
 核心做法：不让图像模型一次画出整张精灵表，而是**逐格生成 + 脚本按坐标合成**，
 并把官方 `generic.png` 的 UI 装饰像素原样保留。
@@ -66,7 +72,7 @@ curl -L -o generic.png https://ikkimikka.net/stompgame/generic.png
 
 # 2. 首版只放 8 张图到 frames/（命名见 references/prompts.md）
 #    front_0.png / front_3.png / front_5.png / back_0.png
-#    normal_1.png / normal_3.png / normal_5.png / endscreen.png
+#    normal_0.png / normal_1.png / normal_2.png / endscreen.png
 #    其余 18 格由 build_sheet.py 按 REUSE_MAP 自动复制，不必生成
 
 # 2b. 需要编号对照图时（含上游像素，仅本地查看，不要提交）
@@ -108,7 +114,7 @@ references/upstream.md          底板来源、SHA256、合规、版本漂移
 scripts/layout.py               坐标常量 + MUST_GENERATE / REUSE_MAP / NUMBERED_CELLS
 scripts/png.py                  零依赖 PNG 读写/去背/缩放/统计
 scripts/build_sheet.py          合成、复用未生成格、生成 PNG+ZIP、两份都复制到桌面
-scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/帧间突变）
+scripts/validate.py             校验（装饰/去背/贴底/实体腿/姿态/前后爪/初期表情/帧间突变）
 scripts/import_game.py          Playwright 自动上传参考实现（默认上传 ZIP）
 scripts/make_numbered_map.py    生成带编号的标注图（本地产出）
 assets/settings.template.json   ZIP 全定制模板
@@ -145,9 +151,11 @@ assets/settings.template.json   ZIP 全定制模板
   自动裁剪透明边并底对齐，`validate.py` 的 `ground:*` 会拦截超过 6px 的留白。
 - **腿必须实体填充**：只画两条轮廓线的"空心腿"在游戏里会看成透明腿；提示词要求柱状实体
   并延伸到格顶，`validate.py` 的 `leg:*` 判 FAIL、`top:*` 检查腿是否到顶边。
-- **首版初期看不到表情变化**：`normal_0/1/2`、`excite_0/1/2`、`tired_0/1` 共用一张低档脸，
-  ego 等级 = `floor(ego_climb/1000)`，要攒到约 3000 点才第一次换脸；`expression:fast-pass`
-  会提示，跑通后按 `references/prompts.md` 第 9 节优先补 `normal_0` / `normal_2` / `excite_1`。
+- **初期表情必须明显变化**：ego 等级 = `floor(ego_climb/1000)`，玩家主要停在 0/1/2，
+  所以首版把三张独立表情放在 `normal_0/1/2`；`validate.py` 的 `expression:early-ego`
+  在三者重复时判 FAIL。后期 `normal_3/4/5` 先复用 `normal_2`，`excite_*` 与 `tired_0/1`
+  也复用，属已知损失（`expression:fast-pass` WARN）；跑通后等用户提出，再按
+  `references/prompts.md` 第 9 节补 `normal_3/4/5` / `excite_0/1/2`。
 - **ZIP 才能带元数据**：包内 `settings.json` 必须在根目录，`images.giant` 指向包内图片名；
   上传 ZIP 会应用 `giant.name` / `description` / `grades` / `stickers`，上传 PNG 则
   `giant.grades=false`、名字取文件名（贴纸仍保留游戏默认）。

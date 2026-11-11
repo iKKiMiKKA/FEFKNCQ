@@ -50,7 +50,7 @@ def main():
     ap.add_argument("--max-ground-gap", type=int, default=6,
                     help="max transparent gap below a paw, px (game aligns paws by the cell bottom edge)")
     ap.add_argument("--min-leg-coverage", type=float, default=0.10,
-                    help="min opaque coverage in the top 30% of a paw cell; 0 disables the hollow-leg check")
+                    help="min opaque coverage in the top 30%% of a paw cell; 0 disables the hollow-leg check")
     ap.add_argument("--max-top-gap", type=int, default=8,
                     help="max empty space above a paw before the leg starts, px")
     ap.add_argument("--min-pose-diff", type=float, default=0.10,
@@ -216,15 +216,20 @@ def main():
                   "back paw silhouette is only %.0f%% of the front paw; C5 requires the same "
                   "foot slightly smaller/faded, not a different view" % (ratio * 100))
 
+    early_pairs = (("normal_0", "normal_1"), ("normal_1", "normal_2"),
+                   ("normal_0", "normal_2"))
+    if any(identical(a, b) for a, b in early_pairs):
+        v.add("FAIL", "expression:early-ego",
+              "ego 0/1/2 must be three distinct faces (players stay in this range longest); "
+              "regenerate normal_0/1/2 with clearly different expressions")
+    else:
+        v.add("PASS", "expression:early-ego", "ego 0/1/2 are three distinct faces")
+
     losses = []
-    if all(identical("normal_0", n) for n in ("normal_1", "normal_2")):
-        losses.append("ego 0-2 share one face (no expression change early on)")
+    if all(identical("normal_%d" % i, "normal_2") for i in (3, 4, 5)):
+        losses.append("ego 3-5 reuse normal_2 (no late-game expression steps)")
     if all(identical("normal_%d" % i, "excite_%d" % i) for i in range(6)):
         losses.append("excite column identical to normal (no kill feedback)")
-    if any(identical(a, b) for a, b in (("normal_1", "normal_3"),
-                                        ("normal_3", "normal_5"),
-                                        ("normal_1", "normal_5"))):
-        losses.append("duplicate expression tiers")
     if identical("tired_0", "tired_1"):
         losses.append("tired frames have no blink difference")
     if losses:
