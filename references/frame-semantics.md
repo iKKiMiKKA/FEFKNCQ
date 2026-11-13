@@ -85,14 +85,14 @@
 - 动作时间线照旧：`front_0..2` 抬手→转掌→下落，`front_3..5` 触地→加压→最大压力；
   `back_0..4` 是同一角色另一只手（远景略小、略淡），不得一只手一只脚混用。
 - C1/C2/C3/C4/C5 全部按手等价执行：同一只手、左右固定、指数与指甲不变、掌面污渍只增不减。
-- 提示词替换表与 `{{FOOT_FIXED}}` 的填法见 `references/prompts.md`；首版 9 张必生格、
+- 提示词替换表与 `{{FOOT_FIXED}}` 的填法见 `references/prompts.md`；首版 10 张必生格、
   复用映射、PNG/ZIP 交付流程完全不变。肉垫/掌垫规则同样适用：抬起可见，贴地不可见。
 
 ## 5. 生成策略（防突变的工程做法）
 
-1. 首版按 `references/prompts.md` **生成 9 张必生帧**：`front_0`、`front_3`、`front_5`、
+1. 首版按 `references/prompts.md` **生成 10 张必生帧**：`front_0`、`front_2`、`front_3`、`front_5`、
    `back_0`、`normal_0`、`normal_1`、`excite_0`、`excite_1`、
-   `endscreen`；其余 17 格由 `build_sheet.py` 按 `REUSE_MAP` 复用同组基准帧
+   `endscreen`；其余 16 格由 `build_sheet.py` 按 `REUSE_MAP` 复用同组基准帧
    （详见文末「首版复用白名单」）。
 2. 用户确认补细节后，新增的每一帧都以**同组前一帧 + 基准帧**作为参考图，
    用"只改姿态/只改眉眼嘴"的增量提示词生成，禁止每组重新抽卡。
@@ -110,7 +110,7 @@
 
 - [ ] 11 个爪格是同一只/同一双固定的脚（手模式为同一只/同一双手），左右未翻转
 - [ ] 每格脚掌最底部紧贴格子底边，`validate.py` 无 `ground:*` FAIL（游戏中脚不会悬空）
-- [ ] `front_0` 能看到完整脚底（穿鞋为鞋底、戴手套为手套掌面），`front_0/3/5` 三张姿态明显不同（`pose:*` 无 WARN）
+- [ ] `front_0` 能看到完整脚底（穿鞋为鞋底、戴手套为手套掌面），`front_0/2/3/5` 四张姿态明显不同（`pose:*` 无 WARN）
 - [ ] `front_5` 比 `front_3` 更宽更扁、污渍最多（`pressure:*` 无 WARN）
 - [ ] 后爪与前爪同视角、只缩小 10–15%（`back:*` 无 WARN）
 - [ ] 腿/手臂实体填充并延伸到顶边，不是空心描边（`leg:*` 无 FAIL、`top:*` 无 WARN）
@@ -129,15 +129,15 @@
 - [ ] 三个保留空白格为空
 - [ ] `validate.py` 无 FAIL
 
-## 首版复用白名单（C 档，9 张必生）
+## 首版复用白名单（C 档，10 张必生）
 
-首版生成 `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
-`excite_0` / `excite_1` / `endscreen`，其余 17 格由
+首版生成 `front_0` / `front_2` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
+`excite_0` / `excite_1` / `endscreen`，其余 16 格由
 `build_sheet.py` 按 `REUSE_MAP` 复制同组基准帧。**表情每列两档，后期复用第二档**。
 
 **允许复用**：
 
-- `front_1` / `front_2` ← `front_0`（空中段恒定，只在触地时切换一次）
+- `front_1` ← `front_0`（空中段恒定，只在触地时切换一次；`front_2` 已必生，独立绘制下落末尾帧）
 - `front_4` ← `front_5`（地面高压段恒定）
 - `back_1..4` ← `back_0`（后爪全程同图）
 - `normal_2..5` ← `normal_1`（无击杀时沿用第二档平静脸）

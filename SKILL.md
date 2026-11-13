@@ -37,10 +37,10 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 （见 `references/input-profiles.md`「鞋袜与手套」）。
 **只有手部参考图不等于手模式**；模式 D 下 11 个爪格全部画真正的手（或同款手套），坐标与流程不变。
 
-### 2. 生成首版（9 张，默认尝试并发）
+### 2. 生成首版（10 张，默认尝试并发）
 
-1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 9 张必生格拼提示词：
-   `front_0` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
+1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 10 张必生格拼提示词：
+   `front_0` / `front_2` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
    `excite_0` / `excite_1` / `endscreen`。
    **表情每列两档**：平静 `normal_0`（平静1）/`normal_1`（平静2），兴奋 `excite_0`
    （兴奋1）/`excite_1`（兴奋2）。`normal_1`/`excite_1` 先采用 `normal_5`/`excite_5`
@@ -51,7 +51,7 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
    更宽更扁；`back_0` 以 `front_0` 为参考图、同视角只缩小 10–15%、踩地不露肉垫，
    不得换成正面/俯视。
    **模式 D** 改用 `prompts.md` 的「手模式（D）专属描述替换」表，其余四条不变。
-2. **默认尝试并发**把这 9 张提交给生图通道，以缩短等待时间。
+2. **默认尝试并发**把这 10 张提交给生图通道，以缩短等待时间。
 3. **回退规则**：若通道不支持并发、报并发限制或并行结果串图，立即改为逐格串行；
    **其余流程一律不变**（不改合成、校验、导入步骤，不重新设计提示词，不新增分支）。
    **串行与补图时必须把同组已生成的基准帧作为参考图上传**（`front_3`←`front_0`、
@@ -62,7 +62,7 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 5. 需要编号对照图时运行
    `python scripts/make_numbered_map.py --base generic.png --out numbered_map.png`（本地产出，不入库）。
 
-### 3. 合成（自动复用其余 17 格，产出 PNG + ZIP；调试产物在临时目录，最终交付加 --deliver 才复制到桌面）
+### 3. 合成（自动复用其余 16 格，产出 PNG + ZIP；调试产物在临时目录，最终交付加 --deliver 才复制到桌面）
 
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"   # 调试：产物在临时目录
@@ -71,7 +71,7 @@ python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --na
 
 脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；
 已存在的帧文件优先使用（标 `generated`）。读取 `custom.report.json` 确认 26 格全部填充、
-`must_generate` 的 9 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
+`must_generate` 的 10 张齐全。**首版允许复用，不要因为 `reused` 去补画**。
 
 **爪格贴底对齐（必做）**：`build_sheet.py` 对 `front_*` / `back_*` 先裁掉透明边再**底对齐**
 贴入，保证脚掌（手模式为手掌）最底部紧贴格子底边。游戏把爪格底边当作落脚点、
@@ -128,7 +128,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 
 ### 6. 跑通后主动询问是否补细节
 
-一旦用户已经能玩，**必须主动提问**："首版生成了 9 张图、其余 17 格复用基准帧，
+一旦用户已经能玩，**必须主动提问**："首版生成了 10 张图、其余 16 格复用基准帧，
 是否需要补画更多细节？" 并按 `references/prompts.md` 第 9 节的优先级给出候选：
 优先把 `normal_1`/`excite_1` 的中度表情补上、并将当前占位版移回 `normal_5`/`excite_5`；
 其次是中间档 `normal_2..4`/`excite_2..4`、抬爪中间帧、后爪压力帧、疲惫两帧。
@@ -177,7 +177,7 @@ python scripts/validate.py --sheet custom.png --base generic.png --report custom
 - 不把后爪画成另一个视角或另一只形状的脚（C5）：以 `front_0` 为参考图、同趾序、
   只缩小 10–15%，`back:*` 会拦截。
 - **用户明确说用手时不得强制画脚**；仅提供手部参考图（模式 C）时仍不得把手掌当脚的解剖依据。
-- 首版生成 9 张必生格（含击杀 3 张）；并发失败时只回退串行，**不改动其余流程**。
+- 首版生成 10 张必生格（含击杀 2 张：`excite_0`/`excite_1`）；并发失败时只回退串行，**不改动其余流程**。
 - 调试产物默认落在系统临时目录（不在桌面堆积）；最终交付加 `--deliver` 才复制一份到桌面（文件名带角色名 + 时间戳，不覆盖旧产物）。
 - 有浏览器能力的 agent **默认上传 ZIP**，不默认上传 PNG。
 - 用户能玩之后必须主动询问是否补细节，未确认前不自行加图。

@@ -76,7 +76,7 @@ F05–F12 复用第二档（`normal_2..5`←`normal_1`、`excite_2..5`←`excite
 ## 首版（C 档）必生与复用
 
 见 `scripts/layout.py` 的 `MUST_GENERATE` 与 `REUSE_MAP`。
-首版生成 9 张：`P01(front_0)`、`P02(front_3)`、`P10(front_5)`、`P03(back_0)`、
+首版生成 10 张：`P01(front_0)`、`P02(front_3)`、`P09(front_2)`、`P10(front_5)`、`P03(back_0)`、
 `F01(normal_0)`、`F03(normal_1)`、`F02(excite_0)`、`F04(excite_1)`、`E01(endscreen)`；
-其余 17 格由 `build_sheet.py` 自动复制同组基准帧。
+其余 16 格由 `build_sheet.py` 自动复制同组基准帧。
 **补细节不需要改配置**：把 `<帧名>.png` 放进 `frames/` 重新合成即可自动覆盖复用。

@@ -89,20 +89,24 @@ BG_KEYS = {
     "magenta": (255, 0, 255),
 }
 
-# Fast first pass: 9 generated frames. The calm column generates two tiers
-# (normal_0 = calm 1, normal_1 = calm 2) and the kill column generates two
-# tiers (excite_0 = excited 1, excite_1 = excited 2), so ego 0 -> 1 already
-# shows a clear face change on both lines. normal_1/excite_1 are seeded from
-# the highest-tier designs (normal_5/excite_5) as a quick placeholder; a later
-# detail pass moves those two faces back to normal_5/excite_5 and regenerates
-# proper mid-tier faces for normal_1/excite_1. Levels 2-5 reuse normal_1 on
-# the calm column and excite_1 on the kill column. Everything else is copied by
-# build_sheet.py from the same group. Adding a file named <cell>.png later
-# automatically overrides its reuse entry, so refining details never requires
-# editing this table.
+# Fast first pass: 10 generated frames. The paws generate front_0 (raised),
+# front_2 (descending / near ground), front_3 (touchdown) and front_5 (max
+# pressure) plus back_0, so the front paw fall reads clearly: front_1 reuses
+# front_0 for the upper-air hold and front_4 reuses front_5 for the ground
+# press. The calm column generates two tiers (normal_0 = calm 1, normal_1 =
+# calm 2) and the kill column generates two tiers (excite_0 = excited 1,
+# excite_1 = excited 2), so ego 0 -> 1 already shows a clear face change on
+# both lines. normal_1/excite_1 are seeded from the highest-tier designs
+# (normal_5/excite_5) as a quick placeholder; a later detail pass moves those
+# two faces back to normal_5/excite_5 and regenerates proper mid-tier faces for
+# normal_1/excite_1. Levels 2-5 reuse normal_1 on the calm column and excite_1
+# on the kill column. Everything else is copied by build_sheet.py from the same
+# group. Adding a file named <cell>.png later automatically overrides its reuse
+# entry, so refining details never requires editing this table.
 MUST_GENERATE = [
-    "front_0",    # raised paw
-    "front_3",    # touchdown
+    "front_0",    # raised paw (paw_state=0)
+    "front_2",    # descending, near ground (paw_state=2)
+    "front_3",    # touchdown (pressure ~0)
     "front_5",    # maximum pressure
     "back_0",     # far paw baseline
     "normal_0",   # calm tier 1 (ego 0 baseline)
@@ -113,7 +117,7 @@ MUST_GENERATE = [
 ]
 
 REUSE_MAP = {
-    "front_1": "front_0", "front_2": "front_0", "front_4": "front_5",
+    "front_1": "front_0", "front_4": "front_5",
     "back_1": "back_0", "back_2": "back_0", "back_3": "back_0", "back_4": "back_0",
     "normal_2": "normal_1", "normal_3": "normal_1",
     "normal_4": "normal_1", "normal_5": "normal_1",
