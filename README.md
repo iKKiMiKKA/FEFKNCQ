@@ -24,7 +24,7 @@ agent 会：判定素材模式 → **首版生成 10 张必生图**（`front_0` 
 `custom.zip`（调试产物在临时目录，最终交付加 `--deliver` 才复制到桌面）→ 校验 → 有浏览器能力就**默认上传 `custom.zip`** 并点击开始。
 ZIP 根目录的 `settings.json` 带角色名、描述、评级与贴纸；上传纯 PNG 会关闭评级、角色名只取文件名。
 **表情每列两档**：平静 `normal_0`（平静1）/`normal_1`（平静2），兴奋 `excite_0`/`excite_1`，
-后期复用第二档；`normal_1`/`excite_1` 先借用 F11/F12 的高档设计，后续再细化。
+后期复用第二档；`normal_1`/`excite_1` 先借用 `normal_5`/`excite_5` 的高档设计占位，后续再细化。
 生成时**默认尝试并发**；通道不支持并发或结果串图时只回退为逐格串行，其余流程不变。
 
 **想用手掌拍而不是脚踩？** 明确说"用手 / 用手掌 / 用手拍 / 不要脚"即可，
@@ -106,7 +106,8 @@ python scripts/import_game.py
 ```
 
 也可以不装 Playwright：打开 <https://ikkimikka.net/stompgame/?character=custom>，
-把桌面上的 `custom.zip`（或 `custom.png`）拖进上传框，再点击画布开始。
+把 `custom.zip`（或 `custom.png`）拖进上传框，再点击画布开始（产物默认在系统临时目录
+`stomp_output/`，加 `--deliver` 后会同时复制到桌面）。
 推荐 ZIP：会额外带上角色名、描述与结算评级。
 
 ## 目录
@@ -115,7 +116,7 @@ python scripts/import_game.py
 SKILL.md                        agent 主指令
 references/layout.md            唯一坐标契约（1024×1024 全部切片）
 references/frame-semantics.md   26 格姿态/表情语义 + 防动作突变约束
-references/input-profiles.md    四种素材模式（含手模式）的容错与降级
+references/input-profiles.md    五种素材模式（A/B/C/D 与角色名模式 E）的容错与降级
 references/numbering.md         34 个格位编号、出现时机与频率
 references/prompts.md           首版 10 格提示词 + 复用映射 + 补细节优先级
 references/import.md            自动导入、验收清单、故障排查
