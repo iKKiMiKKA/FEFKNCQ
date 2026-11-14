@@ -37,8 +37,12 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 （见 `references/input-profiles.md`「鞋袜与手套」）。
 **只有手部参考图不等于手模式**；模式 D 下 11 个爪格全部画真正的手（或同款手套），坐标与流程不变。
 
-### 2. 生成首版（10 张，默认尝试并发）
+### 2. 生成首版（标准 10 张，默认尝试并发）
 
+- **单主体 / 无后腿形态特例**：若 OC 是屁股、蛞蝓/史莱姆、或其他无后腿的单一椭圆下踩体，
+  则**整个后爪组（`back_0..4`）不绘制、留空**——只画前爪 `front_*` 作为唯一的下踩主体。
+  首版必生由此从 10 张降为 9 张（去掉 `back_0`），合成时加 `--empty back`，
+  后爪 5 格输出透明且免报缺失。
 1. 读取 `references/prompts.md` 与 `references/numbering.md`，只为 10 张必生格拼提示词：
    `front_0` / `front_2` / `front_3` / `front_5` / `back_0` / `normal_0` / `normal_1` /
    `excite_0` / `excite_1` / `endscreen`。
@@ -67,6 +71,7 @@ description: 当用户要求把 OC 角色做成 STOMPGAME（ikkimikka.net/stompg
 ```
 python scripts/build_sheet.py --frames frames/ --base generic.png --bg auto --name "<OC 名字>"   # 调试：产物在临时目录
 # 最终交付时加 --deliver，复制一份到桌面
+# 单主体无后腿形态（屁股/蛞蝓等）：加 --empty back，后爪 5 格留空、只画前爪下踩
 ```
 
 脚本按 `scripts/layout.py:REUSE_MAP` 把未提供的格复制同组基准帧，report 标 `reused:<源格>`；

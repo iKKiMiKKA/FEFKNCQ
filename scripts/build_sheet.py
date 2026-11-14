@@ -249,6 +249,11 @@ def main():
     ap.add_argument("--margin", type=int, default=2, help="transparent padding inside each cell")
     ap.add_argument("--missing", default="baseline", choices=["error", "baseline", "blank"],
                     help="what to do when a frame file is absent")
+    ap.add_argument("--empty", default="",
+                    help="comma-separated cell names or group names (front/back/normal/"
+                         "excite/tired/endscreen) to force transparent. Use 'back' for a "
+                         "single-body OC that has no hind legs: its hind-paw cells are left "
+                         "blank and exempt from the must-generate check.")
     ap.add_argument("--deliver", action="store_true",
                     help="also copy the finished PNG+ZIP to the desktop as the final "
                          "deliverable (debug runs otherwise keep outputs in the temp dir)")
@@ -299,9 +304,25 @@ def main():
     report["must_generate"] = {
         n: bool(mapping.get(n) and Path(mapping[n]).is_file()) for n in MUST_GENERATE
     }
+    empty_cells = set()
+    for tok in (args.empty or "").split(","):
+        tok = tok.strip()
+        if not tok:
+            continue
+        if tok in GROUP_MEMBERS:
+            empty_cells.update(GROUP_MEMBERS[tok])
+        elif tok in CELLS:
+            empty_cells.add(tok)
+        else:
+            report["warnings"].append("unknown --empty token ignored: %s" % tok)
+    report["empty_cells"] = sorted(empty_cells)
 
     for name, (x, y, w, h) in CELLS.items():
         png.clear_rect(sheet, SHEET_W, SHEET_H, x, y, w, h)
+        if name in empty_cells:
+            report["cells"][name] = {"rect": [x, y, w, h], "status": "blank"}
+            report["warnings"].append("%s left blank (--empty)" % name)
+            continue
         root, used, reused, terminal = find_source(name, mapping)
         status = None
         if used is None:
@@ -390,7 +411,8 @@ def main():
                    if str(c["status"]).startswith("baseline:"))
     print("wrote %s (%d generated, %d reused, %d baseline, %d/%d cells filled)" %
           (out, gen, reused, baseline, gen + reused + baseline, len(CELLS)))
-    missing_must = [n for n, present in report["must_generate"].items() if not present]
+    missing_must = [n for n, present in report["must_generate"].items()
+                    if not present and n not in empty_cells]
     if missing_must:
         print("WARN  must-generate frames not supplied: %s" % ", ".join(missing_must))
     print("report: %s" % report_path)

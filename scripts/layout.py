@@ -108,7 +108,7 @@ MUST_GENERATE = [
     "front_2",    # descending, near ground (paw_state=2)
     "front_3",    # touchdown (pressure ~0)
     "front_5",    # maximum pressure
-    "back_0",     # far paw baseline
+    "back_0",     # far paw baseline (single-body OC: skip the whole back group via --empty back)
     "normal_0",   # calm tier 1 (ego 0 baseline)
     "normal_1",   # calm tier 2 (seeded from the normal_5 design for now)
     "excite_0",   # kill tier 1 (ego 0)
