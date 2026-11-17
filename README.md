@@ -1,5 +1,7 @@
 # FEFKNCQ
 
+国内下载专用 ：https://pan.xunlei.com/s/VP6cjCaXKyvuVTlALsM82k8KA1?pwd=rp5p
+
 给 AI agent 用的 skill：把你的 OC 角色做成 [STOMPGAME 自定义导入页](https://ikkimikka.net/stompgame/?character=custom)
 能直接导入的自定义角色图 `custom.png`，同时产出可设置角色名、
 描述与结算评级的 `custom.zip`，并自动开始游戏。
