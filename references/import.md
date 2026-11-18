@@ -81,11 +81,35 @@ ZIP 内相对路径（加载时先在包内找，再回退站点 URL），所以
 | | `bug` | 小人动画/物理、`fits` 替代小人、`special_kill` |
 | | `paw` | 爪手感、`steamroller`、`wetness`、体力参数 |
 | | `ego` | 开关、增减倍率、`step` |
-| | `stain` | 污渍数量 |
+| | `stain` | 地面污渍数量：`buckets`、`buckets_max`（详见下方「关闭地面污渍」） |
 | **整体替换**（写了就全量覆盖） | `sound_urls` | `[URL, tag]` 列表；**必须列全想要的音效**，省略该键才用默认 |
 | | `stickers` | 61 条爪上贴纸坐标；`[]` 即清空 |
 | | `demographics` | 小人分布权重 |
 | | `ego_tiers` | 6 档 ego 阈值 |
+
+### 关闭地面污渍（`stain`）
+
+抬脚时脚底/地面看到的那片黑色污渍**不是画在角色图里的**，而是游戏运行时动态生成并画在地面上的：
+踩踏时 `add_stain()` 按 x 坐标把污渍存进 `stain.buckets`（默认 32 个桶），每桶最多
+`stain.buckets_max`（默认 12 个），`draw_stains()` 再用 `stain_spr` 画出来。所以它跟
+`custom.png` 的内容无关，也不受 `validate.py` 约束。
+
+`stain` 是**浅合并**字段，只需写要改的子键。在 `settings.json` 里把每桶上限设为 0 即可完全关闭
+（`b.length >= 0` 恒成立，`add_stain()` 直接返回，一个污渍都不生成）：
+
+```json
+{
+  "giant": { "name": "MY OC" },
+  "images": { "giant": "custom.png" },
+  "stain": { "buckets_max": 0 }
+}
+```
+
+- 想少一点而非完全没有，调小 `buckets_max`（如 2~3）或 `buckets` 即可。
+- 用法：复制 `assets/settings.template.json` 加上 `"stain": { "buckets_max": 0 }`，
+  合成时用 `--settings my.json` 传给 `build_sheet.py` 重新打包。
+- 这与生成提示词里"污渍随压扁只增不减"是两回事：那是画在贴地帧爪格上的静态污渍（游戏画面里
+  脚背朝下时可见），抬起帧 `front_0` 按规范干净无污渍；本段只管游戏侧的地面污渍。
 
 评级 `grades` 每条是 `[stat tag, 操作符, 数值, hint]`（可用 stat 见官方
 `generic.zip/stats.txt`，操作符为 `< > <= >= = !=` 六种）；`grades: null` 关闭评级并直接显示
@@ -125,6 +149,7 @@ ZIP 内相对路径（加载时先在包内找，再回退站点 URL），所以
 | 脚还悬在空中，小人却已被踩死 | 爪格脚底离格子底边留了透明空隙（游戏按格底边对齐 `paw_y`，不看图片内容） | 重跑 `build_sheet.py`：爪格会自动裁剪透明边并底对齐；`validate.py` 的 `ground:*` 会拦截 >6px 的留白 |
 | ZIP 上传后没声音 | `sound_urls` 是整体替换，只写了部分标签 | 补全想要的标签，或整个删掉该键使用默认音效 |
 | 爪上看不到残留小人/贴纸 | 模板 `"stickers": []` 清空了默认贴纸 | 加 `--keep-default-stickers` 重新打包；需目检官方坐标是否贴合 OC 爪形 |
+| 抬脚/地面出现黑色污渍，想关掉 | 游戏运行时的 `stain` 机制（不是画在角色图里） | `settings.json` 加 `"stain": { "buckets_max": 0 }` 重新打包，详见上方「关闭地面污渍」 |
 | 角色名/评级台词显示不全 | 文本用 `VT323` 等宽字体按 6px/字符排版 | 改用短英文，缩短 `name` / `description` / `congrats` / hint |
 | `settings.json` 有 WARN | 改了坐标类字段或评级结构 | 按 `custom.report.json` 的 warnings 逐条修，详见上文「不要改的字段」 |
 | 无法自动上传 | agent 无浏览器能力 | 把桌面两份路径告诉用户，让用户手动拖入 `?character=custom` 页面 |
