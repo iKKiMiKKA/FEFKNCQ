@@ -78,90 +78,44 @@ ZIP 内相对路径（加载时先在包内找，再回退站点 URL），所以
 | **浅合并**（不写即用游戏默认） | `giant` | `name`、`description`（开场多行介绍）、`congrats`、`grades` |
 | | `images` | `giant`（脚本自动写包内图片名）、`env`（背景图） |
 | | `set` | `tiny_name*`、`bg_color`、`day_night_cycle`、`phrase_changes`、`closed_walls`、`starter_bugs`、`show_*` HUD 开关、`ambience_url` |
-| | `bug` | 小人动画/物理、`fits` 替代小人；血腥效果的贴图都在这里（`sticker_*_spr` / `stain_spr` / `drop_*_spr` / `strand_spr`），详见下方「关闭血腥效果」 |
+| | `bug` | 小人动画/物理、`fits` 替代小人、`special_kill` |
 | | `paw` | 爪手感、`steamroller`、`wetness`、体力参数 |
 | | `ego` | 开关、增减倍率、`step` |
-| | `stain` | 地面血渍数量：`buckets`、`buckets_max` |
+| | `stain` | 地面污渍数量：`buckets`、`buckets_max`（详见下方「关闭地面污渍」） |
 | **整体替换**（写了就全量覆盖） | `sound_urls` | `[URL, tag]` 列表；**必须列全想要的音效**，省略该键才用默认 |
-| | `stickers` | 61 条爪上贴纸坐标；**切勿设 `[]`——空数组会让游戏崩溃**（见下方「关闭血腥效果」） |
+| | `stickers` | 61 条爪上贴纸坐标；`[]` 即清空 |
 | | `demographics` | 小人分布权重 |
 | | `ego_tiers` | 6 档 ego 阈值 |
 
-### 关闭血腥效果（贴纸 / 拉丝 / 血渍 / 血滴）
+### 关闭地面污渍（`stain`）
 
-游戏画面里抬脚时的黑色残留物**不是画在 `custom.png` 里的**，而是游戏运行时叠加的四套独立效果。
-它们与生成图和 `validate.py` 无关，全部由 `settings.json` 控制（源码依据：官方游戏 `index.html`
-的 `draw_stickers` / `draw_strand` / `draw_stains` / `draw_droplets`）：
+抬脚时脚底/地面看到的那片黑色污渍**不是画在角色图里的**，而是游戏运行时动态生成并画在地面上的：
+踩踏时 `add_stain()` 按 x 坐标把污渍存进 `stain.buckets`（默认 32 个桶），每桶最多
+`stain.buckets_max`（默认 12 个），`draw_stains()` 再用 `stain_spr` 画出来。所以它跟
+`custom.png` 的内容无关，也不受 `validate.py` 约束。
 
-| 效果 | 来源字段（在 `bug` 段，浅合并） | 关闭方法 |
-|---|---|---|
-| 脚上/脚底的残留小人 | `sticker_high_spr` / `sticker_low_spr` | 指向全透明贴图（下方详解） |
-| 抬脚拉出的细丝 | `strand_spr` | 设 `null`（源码 `draw_strand()` 有 `if(!spr) return`） |
-| 地面血渍 | `stain_spr`（或 `stain.buckets_max:0` 从源头不生成） | 指向全透明贴图 / 设上限 0 |
-| 飞溅血滴 | `drop_spr` / `drop_hit_spr`（或 `bug.drop_on:false` 从源头不生成） | 指向全透明贴图 / 设 `false` |
-
-**彻底关闭（视觉全干净）的推荐配置**——复制 `assets/settings.template.json` 加上 `bug` 段：
+`stain` 是**浅合并**字段，只需写要改的子键。在 `settings.json` 里把每桶上限设为 0 即可完全关闭
+（`b.length >= 0` 恒成立，`add_stain()` 直接返回，一个污渍都不生成）：
 
 ```json
 {
   "giant": { "name": "MY OC" },
   "images": { "giant": "custom.png" },
-  "bug": {
-    "sticker_high_spr": ["env", 0, 896, 32, 32],
-    "sticker_low_spr":  ["env", 0, 896, 32, 32],
-    "stain_spr":        ["env", 0, 896, 32, 16],
-    "drop_spr":         ["env", 0, 896, 16, 16],
-    "drop_hit_spr":     ["env", 0, 896, 16, 16],
-    "strand_spr": null
-  }
+  "stain": { "buckets_max": 0 }
 }
 ```
 
-`["env", 0, 896, ...]` 是官方 env 图上一块**全透明区**（逐像素验证 alpha 全 0），把特效贴图
-指向它即可渲染为"看不见"。合成时用 `--settings my.json` 传给 `build_sheet.py` 重新打包。
-
-**三个必须避开的坑**（都是实测踩出来的）：
-
-1. **千万别设 `"stickers": []`**。空数组会让 `init_stickers()` 提前 return，`sticker_planes` 未
-   初始化；踩到 sticky 小人时 `get_sticker()` 读 `sticker_planes[i].max` 得到 `undefined`，直接
-   抛 `Uncaught TypeError: Cannot read properties of undefined (reading 'max')`，游戏卡死。
-   正确做法是**保留贴纸数组**（用默认 61 条），只把贴纸贴图改成透明。
-2. **透明贴图必须覆盖该精灵的所有帧**。`sprite()` 用 `s[0]`（贴纸索引 0~9）作水平帧偏移
-   `fx*uw`；若只给一格透明，第 1~9 帧会错位采样到相邻的有内容区域，脚上出现圆圈/星星/方块等
-   杂图。env 图 `(0,896)` 起是一整条 320×32（=10 帧 × 32px）全透明横条，正好覆盖贴纸的全部帧；
-   血渍 3 帧、血滴 ≤6 帧也落在这条透明区内。`strand_spr` 是垂直帧（`s[5]=true`），无法用同一技巧，
-   所以用 `null` 直接关闭。
-3. **这只是游戏侧效果**，与生成提示词里"污渍随压扁只增不减"是两回事：那是画在贴地帧爪格上的
-   静态污渍（脚背朝下时可见），抬起帧 `front_0` 按规范干净无污渍。本节只管游戏运行时叠加的效果。
-
-**只想减弱而非全关**：调小 `stain.buckets_max`（默认 12）、把 `bug.sticky_rand`（默认 0.5）
-调低可减少贴纸/拉丝产生量、把 `bug.drop_on` 设 `false` 关血滴、调 `stain.buckets`（默认 32）。
-若只想让"抬起最高帧"不显示贴纸而贴地帧保留，设 `paw.show_stickers_on_upper_state: false`
-（已是默认）；注意 `paw_state==1`（下落中）仍会画贴纸，这一点没有 settings 开关，只能用透明贴图。
+- 想少一点而非完全没有，调小 `buckets_max`（如 2~3）或 `buckets` 即可。
+- 用法：复制 `assets/settings.template.json` 加上 `"stain": { "buckets_max": 0 }`，
+  合成时用 `--settings my.json` 传给 `build_sheet.py` 重新打包。
+- 这与生成提示词里"污渍随压扁只增不减"是两回事：那是画在贴地帧爪格上的静态污渍（游戏画面里
+  脚背朝下时可见），抬起帧 `front_0` 按规范干净无污渍；本段只管游戏侧的地面污渍。
 
 评级 `grades` 每条是 `[stat tag, 操作符, 数值, hint]`（可用 stat 见官方
 `generic.zip/stats.txt`，操作符为 `< > <= >= = !=` 六种）；`grades: null` 关闭评级并直接显示
 `congrats`；默认 5 条对应 6 个 rank，超过需重定义 `set.grade_spr`；条件按难度**从难到易**排序，
 结算显示最后一个未满足条件的 hint。名字/描述/台词由 canvas 的 `VT323` 等宽像素字体绘制，
 **建议短英文**：中文会字体回退，且宽度按 6px/字符估算容易溢出。
-
-### 其它常用可配置项（安全）
-
-除血腥效果外，游戏默认配置里这些字段可调（浅合并，只写要改的键）。完整字段以官方游戏
-`index.html` 的 `const set/paw/ego/bug` 为准；改前确认不与 26 格坐标契约冲突。
-
-- **HUD 开关（`set`，布尔）**：`show_pressure` / `show_time` / `show_kills` / `show_leaves`
-  （默认均 true）、`small_score`（false）、`day_night_cycle`（true）、`foreground_shadow`（false）。
-- **画面/文案（`set`）**：`bg_color`（默认 `#dae5d6`）、`tiny_name` / `tiny_name_plural` /
-  `floor_name` / `special_name`（小人称呼）、`phrase_changes`（文案替换字典）、`seconds_in_day`（600）。
-- **玩法数值（`set`）**：`starter_bugs`（100）、`spawn_rng` / `spawn_ego_base`（0.08）、
-  `closed_walls`（null）、`combo_duration`（1.5）、`floor_pos` / `floor_depth`（12 / 8）。
-- **爪子手感（`paw`）**：`strength`、`speed`、`friction`、`steamroller`、`wetness`，
-  以及体力系统 `stam_on` / `stam_*`。⚠️ `width` / `stomp_masks` / `front_spr` 是坐标契约，**勿改**。
-- **ego（`ego`）**：`on` / `numbers_on`（开关）、`gain_mul` / `loss_mul`、`step`（1000）、
-  `passive_loss`、`phase_boost`。⚠️ `levels` 勿改（表情帧数绑定）。
-- **整体替换字段**：`sound_urls`（必须列全想要的音效，省略才用默认）、`demographics`（小人称谓权重）、
-  `ego_tiers`（6 档阈值）。`stickers` 切勿设 `[]`（见上方血腥效果章节）。
 
 **不要改的字段**：任何 `*_spr` 坐标（`front_spr` / `normal_spr` / `end_spr` / `grade_spr` 等）、
 `ego.levels`、`paw.width`、`paw.stomp_masks`、`ego_tiers` 的长度——它们与 1024×1024 的
@@ -194,8 +148,8 @@ ZIP 内相对路径（加载时先在包内找，再回退站点 URL），所以
 | 上传后游戏没反应 | 文件类型不是 `.png`/`.zip`，或 input 未等到 | 确认扩展名与 `wait_for_selector("#upload")` |
 | 脚还悬在空中，小人却已被踩死 | 爪格脚底离格子底边留了透明空隙（游戏按格底边对齐 `paw_y`，不看图片内容） | 重跑 `build_sheet.py`：爪格会自动裁剪透明边并底对齐；`validate.py` 的 `ground:*` 会拦截 >6px 的留白 |
 | ZIP 上传后没声音 | `sound_urls` 是整体替换，只写了部分标签 | 补全想要的标签，或整个删掉该键使用默认音效 |
-| 爪上看不到默认残留小人 | skill 模板默认 `"stickers": []`（默认贴纸被清空） | 想保留官方贴纸就加 `--keep-default-stickers` 重新打包；⚠️ 但在游戏侧自定义时切勿写 `"stickers": []`（会崩，见「关闭血腥效果」） |
-| 抬脚/地面出现黑色污渍/拉丝/血滴，想关掉 | 游戏运行时叠加的 stickers/strand/stain/drop 效果（不是画在角色图里） | 按上方「关闭血腥效果」用透明贴图 + `strand_spr:null`；切勿只设 `stain.buckets_max:0`（那只关地面血渍，脚上残留小人和拉丝仍在） |
+| 爪上看不到残留小人/贴纸 | 模板 `"stickers": []` 清空了默认贴纸 | 加 `--keep-default-stickers` 重新打包；需目检官方坐标是否贴合 OC 爪形 |
+| 抬脚/地面出现黑色污渍，想关掉 | 游戏运行时的 `stain` 机制（不是画在角色图里） | `settings.json` 加 `"stain": { "buckets_max": 0 }` 重新打包，详见上方「关闭地面污渍」 |
 | 角色名/评级台词显示不全 | 文本用 `VT323` 等宽字体按 6px/字符排版 | 改用短英文，缩短 `name` / `description` / `congrats` / hint |
 | `settings.json` 有 WARN | 改了坐标类字段或评级结构 | 按 `custom.report.json` 的 warnings 逐条修，详见上文「不要改的字段」 |
 | 无法自动上传 | agent 无浏览器能力 | 把桌面两份路径告诉用户，让用户手动拖入 `?character=custom` 页面 |
